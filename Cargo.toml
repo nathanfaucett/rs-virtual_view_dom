@@ -1,0 +1,18 @@
+[package]
+name = "virt_dom"
+version = "0.1.0"
+authors = ["Nathan Faucett <nathanfaucett@gmail.com>"]
+
+keywords = ["virt_dom", "virt", "dom"]
+description = "a virt transaction renderer for the dom"
+license = "MIT"
+readme = "README.md"
+repository = "https://gitlab.com/nathanfaucett/rs-virt_dom.git"
+homepage = "https://gitlab.com/nathanfaucett/rs-virt_dom"
+
+[dependencies]
+virt = {path = "../rs-virt"}
+stdweb = "0.1"
+serde_json = "1.0"
+
+[dev-dependencies]

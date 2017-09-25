@@ -1,0 +1,17 @@
+[package]
+name = "virt_dom-example-simple"
+version = "0.1.0"
+authors = ["Nathan Faucett <nathanfaucett@gmail.com>"]
+
+keywords = ["virt_dom-example-simple"]
+description = "virt_dom-example-simple"
+license = "MIT"
+
+[dependencies]
+virt = {path = "../../../rs-virt"}
+virt_dom = {path = "../.."}
+serde = "1.0"
+serde_json = "1.0"
+stdweb = "0.1"
+
+[dev-dependencies]
