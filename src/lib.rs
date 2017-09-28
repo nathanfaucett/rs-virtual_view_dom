@@ -5,7 +5,7 @@
 #[macro_use]
 extern crate alloc;
 extern crate serde_json;
-extern crate virt;
+extern crate virtual_view;
 #[macro_use]
 extern crate stdweb;
 

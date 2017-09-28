@@ -1,12 +1,10 @@
 [root]
-name = "virtual_view_dom-example-simple"
+name = "virtual_view_dom"
 version = "0.1.0"
 dependencies = [
- "serde 1.0.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "stdweb 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "virtual_view 0.1.0 (git+https://gitlab.com/nathanfaucett/rs-virtual_view.git)",
- "virtual_view_dom 0.1.0",
 ]
 
 [[package]]
@@ -104,15 +102,6 @@ dependencies = [
  "serde 1.0.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "virtual_view_dom"
-version = "0.1.0"
-dependencies = [
- "serde_json 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "stdweb 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "virtual_view 0.1.0 (git+https://gitlab.com/nathanfaucett/rs-virtual_view.git)",
 ]
 
 [metadata]

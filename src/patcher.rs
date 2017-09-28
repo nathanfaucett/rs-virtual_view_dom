@@ -4,7 +4,7 @@ use alloc::vec::Vec;
 
 use serde_json::Value;
 use stdweb::web::{Document, INode, Node};
-use virt::{View, Transaction, Patch, get_view_id};
+use virtual_view::{RawView, Transaction, Patch, get_view_id};
 
 use super::utils::ToHtmlString;
 
@@ -180,15 +180,15 @@ impl Patcher {
     }
 
     #[inline]
-    fn create_node(&mut self, id: &String, view: &View) -> Node {
+    fn create_node(&mut self, id: &String, view: &RawView) -> Node {
         match view {
-            &View::Text(ref text) => {
+            &RawView::Text(ref text) => {
                 let node: Node = self.document.create_element("span").into();
                 node.set_text_content(text);
                 self.nodes.insert(id.clone(), node.clone());
                 node
             },
-            &View::Data { .. } => {
+            &RawView::Data { .. } => {
                 let tmp = self.document.create_element("div");
 
                 let result = js!{
@@ -205,17 +205,17 @@ impl Patcher {
     }
 
     #[inline]
-    fn set_child_nodes_id(&mut self, node: &Node, id: &String, view: &View) {
+    fn set_child_nodes_id(&mut self, node: &Node, id: &String, view: &RawView) {
 
         self.nodes.insert(id.clone(), node.clone());
 
         match view {
-            &View::Data { ref children, .. } => {
+            &RawView::Data { ref children, .. } => {
                 let mut index = 0;
 
                 for child_node in node.child_nodes().iter() {
                     let child = &children[index];
-                    let child_id = get_view_id(id, child, index);
+                    let child_id = get_view_id(id, child.key(), index);
                     self.set_child_nodes_id(&child_node, &child_id, child);
                     index += 1;
                 }
@@ -225,15 +225,15 @@ impl Patcher {
     }
 
     #[inline]
-    fn remove_child_nodes_id(&mut self, id: &String, view: &View) {
+    fn remove_child_nodes_id(&mut self, id: &String, view: &RawView) {
         if let Some(node) = self.nodes.remove(id) {
             match view {
-                &View::Data { ref children, .. } => {
+                &RawView::Data { ref children, .. } => {
                     let mut index = 0;
 
                     for _child_node in node.child_nodes().iter() {
                         let child = &children[index];
-                        let child_id = get_view_id(id, child, index);
+                        let child_id = get_view_id(id, child.key(), index);
                         self.remove_child_nodes_id(&child_id, child);
                         index += 1;
                     }

@@ -5,15 +5,16 @@ extern crate stdweb;
 #[macro_use]
 extern crate serde_json;
 #[macro_use]
-extern crate virt;
-extern crate virt_dom;
+extern crate virtual_view;
+extern crate virtual_view_dom;
 
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use stdweb::web::*;
-use virt::*;
-use virt_dom::*;
+use stdweb::web::{document, set_timeout};
+
+use virtual_view::{View, Renderer};
+use virtual_view_dom::Patcher;
 
 
 static COUNT: AtomicUsize = AtomicUsize::new(0_usize);
@@ -21,13 +22,18 @@ static DIR: AtomicUsize = AtomicUsize::new(1_usize);
 
 
 fn render(count: usize) -> View {
-    let children: Vec<View> = (0..count).map(|c| {
-        let index = count - c;
-        view!("a", {"key": index, "x-index": c, "style": json!({"z-index": index})},
-            vec![text!("{}", index)]
-        )
-    }).collect();
-    view!("div", {"class": "Root"}, children)
+    View::new("div",
+        json!({"class": "Root"}),
+        events!(),
+        (0..count).map(|c| {
+            let index = count - c;
+            View::new("a",
+                json!({"key": index, "x-index": c, "style": {"z-index": index}}),
+                events!(),
+                vec![text!("{}", index)]
+            )
+        }).collect()
+    )
 }
 
 fn on_render(mut patcher: Patcher, mut renderer: Renderer) {
@@ -48,7 +54,7 @@ fn on_render(mut patcher: Patcher, mut renderer: Renderer) {
     let view = render(count);
     let transaction = renderer.render(view);
     patcher.patch(&transaction);
-    set_timeout(move || on_render(patcher, renderer), 100);
+    set_timeout(move || on_render(patcher, renderer), 40);
 }
 
 

@@ -1,7 +1,7 @@
-virt_dom
+virtual_view_dom
 =====
 
-a virt transaction renderer for the dom
+a virtual_view transaction renderer for the dom
 
 ```rust
 #![feature(const_atomic_usize_new)]
@@ -11,15 +11,15 @@ extern crate stdweb;
 #[macro_use]
 extern crate serde_json;
 #[macro_use]
-extern crate virt;
-extern crate virt_dom;
+extern crate virtual_view;
+extern crate virtual_view_dom;
 
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use stdweb::web::*;
-use virt::*;
-use virt_dom::*;
+use virtual_view::*;
+use virtual_view_dom::*;
 
 
 static COUNT: AtomicUsize = AtomicUsize::new(0_usize);
@@ -29,8 +29,8 @@ static DIR: AtomicUsize = AtomicUsize::new(1_usize);
 fn render(count: usize) -> View {
     let children: Vec<View> = (0..count).map(|c| {
         let index = count - c;
-        view!("a", {"key": index, "x-index": c, "style": json!({"z-index": index})},
-            vec![text!("{}", index)]
+        view!("a", {"key": index, "x-index": c, "style": {"z-index": index}},
+            [text!("{}", index)]
         )
     }).collect();
     view!("div", {"class": "Root"}, children)

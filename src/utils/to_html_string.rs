@@ -2,7 +2,7 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
 use serde_json::Value;
-use virt::View;
+use virtual_view::{View, RawView};
 
 
 pub trait ToHtmlString {
@@ -13,9 +13,18 @@ pub trait ToHtmlString {
 impl ToHtmlString for View {
     #[inline]
     fn to_html_string(&self) -> String {
+        let raw_view: RawView = self.into();
+        raw_view.to_html_string()
+    }
+}
+
+
+impl ToHtmlString for RawView {
+    #[inline]
+    fn to_html_string(&self) -> String {
         match self {
-            &View::Text(ref string) => format!("<span>{}</span>", string),
-            &View::Data { ref kind, ref props, ref children, .. } => format!(
+            &RawView::Text(ref string) => format!("<span>{}</span>", string),
+            &RawView::Data { ref kind, ref props, ref children, .. } => format!(
                 "<{}{}>{}</{}>",
                 kind,
                 props_to_html_string(props),
@@ -82,7 +91,7 @@ fn prop_to_html_string(prop: &Value) -> String {
 }
 
 #[inline]
-fn children_to_html_string(children: &Vec<View>) -> String {
+fn children_to_html_string(children: &Vec<RawView>) -> String {
     let mut out = String::new();
 
     for child in children {
