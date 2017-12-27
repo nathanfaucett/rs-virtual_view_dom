@@ -1,18 +1,18 @@
-use alloc::btree_map::BTreeMap;
-use alloc::string::{String, ToString};
-use alloc::vec::Vec;
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
 
 use serde_json::Value;
 use stdweb::web::{Document, INode, Node};
-use virtual_view::{RawView, Transaction, Patch, get_view_id};
+use virtual_view::{RawView, Transaction, EventManager, Patch, get_view_id, value_to_string};
 
-use super::utils::ToHtmlString;
+use super::{Events, ToHtmlString};
 
 
 pub struct Patcher {
     root: Node,
     document: Document,
-    nodes: BTreeMap<String, Node>,
+    events: Events,
+    nodes: HashMap<String, Node>,
 }
 
 impl Patcher {
@@ -22,12 +22,16 @@ impl Patcher {
         Patcher {
             root: root,
             document: document,
-            nodes: BTreeMap::new(),
+            events: Events::new(),
+            nodes: HashMap::new(),
         }
     }
 
     #[inline]
-    pub fn patch(&mut self, transaction: &Transaction) {
+    pub fn patch(&mut self, transaction: &Transaction, event_manager: Arc<Mutex<EventManager>>) {
+
+        self.events.set_event_manager(event_manager);
+
         for (id, patches) in transaction.patches() {
             let node = self.nodes.get(id).map(|n| n.clone());
 
@@ -41,6 +45,17 @@ impl Patcher {
                 let _ = parent.remove_child(node);
             }
             self.remove_child_nodes_id(id, &view);
+        }
+        for (id, events) in transaction.events() {
+            for (name, value) in events {
+                if let Some(node) = self.nodes.get(id) {
+                    if *value {
+                        self.events.listen(name, id, node, &self.document);
+                    } else {
+                        self.events.unlisten(name, id, node, &self.document);
+                    }
+                }
+            }
         }
     }
 
@@ -64,7 +79,7 @@ impl Patcher {
             &Patch::Order(ref order) => {
                 let parent_node = node.unwrap();
                 let child_nodes: Vec<_> = parent_node.child_nodes().iter().collect();
-                let mut key_map = BTreeMap::new();
+                let mut key_map = HashMap::new();
 
                 for &(index, ref key) in order.removes() {
                     let child_node = &child_nodes[index];
@@ -241,13 +256,5 @@ impl Patcher {
                 _ => {},
             }
         }
-    }
-}
-
-fn value_to_string(value: &Value) -> String {
-    if let &Value::String(ref string) = value {
-        string.clone()
-    } else {
-        value.to_string()
     }
 }

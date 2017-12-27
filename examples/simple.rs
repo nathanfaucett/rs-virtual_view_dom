@@ -9,11 +9,12 @@ extern crate virtual_view;
 extern crate virtual_view_dom;
 
 
+use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use stdweb::web::{document, set_timeout};
 
-use virtual_view::{View, Renderer};
+use virtual_view::{EventManager, View, Renderer};
 use virtual_view_dom::Patcher;
 
 
@@ -36,7 +37,7 @@ fn render(count: usize) -> View {
     )
 }
 
-fn on_render(mut patcher: Patcher, mut renderer: Renderer) {
+fn on_render(mut patcher: Patcher, mut renderer: Renderer, event_manager: Arc<Mutex<EventManager>>) {
     let last_count = COUNT.load(Ordering::Relaxed);
 
     if last_count == 1_usize {
@@ -52,9 +53,9 @@ fn on_render(mut patcher: Patcher, mut renderer: Renderer) {
     };
 
     let view = render(count);
-    let transaction = renderer.render(view);
-    patcher.patch(&transaction);
-    set_timeout(move || on_render(patcher, renderer), 40);
+    let transaction = renderer.render(view, &mut *event_manager.lock().unwrap());
+    patcher.patch(&transaction, event_manager.clone());
+    set_timeout(move || on_render(patcher, renderer, event_manager), 100);
 }
 
 
@@ -63,8 +64,9 @@ fn main() {
 
     let patcher = Patcher::new(document().get_element_by_id("app").unwrap().into(), document());
     let renderer = Renderer::new();
+    let event_manager = Arc::new(Mutex::new(EventManager::new()));
 
-    on_render(patcher, renderer);
+    on_render(patcher, renderer, event_manager);
 
     stdweb::event_loop();
 }

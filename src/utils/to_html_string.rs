@@ -1,6 +1,3 @@
-use alloc::string::{String, ToString};
-use alloc::vec::Vec;
-
 use serde_json::Value;
 use virtual_view::{View, RawView};
 
@@ -99,4 +96,13 @@ fn children_to_html_string(children: &Vec<RawView>) -> String {
     }
 
     out
+}
+
+
+#[test]
+fn test_to_html_string() {
+    let view = View::new("div", json!({"class": "Root", "style": {"font-size": "32px"}}), events!(),
+        vec![text!("Hello, world!")]
+    );
+    assert_eq!(view.to_html_string(), "<div class=\"Root\" style=\"font-size: 32px;\"><span>Hello, world!</span></div>");
 }

@@ -1,18 +1,19 @@
-#![feature(alloc)]
-#![no_std]
+#![recursion_limit="128"]
 
 
-#[macro_use]
-extern crate alloc;
+#[cfg_attr(test, macro_use)]
 extern crate serde_json;
+#[cfg_attr(test, macro_use)]
 extern crate virtual_view;
 #[macro_use]
 extern crate stdweb;
 
 
+mod events;
 mod utils;
 mod patcher;
 
 
+pub use self::events::{Events, DOMEvent};
 pub use self::utils::ToHtmlString;
 pub use self::patcher::Patcher;
