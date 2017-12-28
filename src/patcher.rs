@@ -121,6 +121,7 @@ impl Patcher {
         }
     }
 
+    #[inline]
     fn remove_prop(node: &Node, key: &String, prev_props: &Map<String, Value>) {
         let prev_prop = &prev_props[key];
 
@@ -158,6 +159,7 @@ impl Patcher {
             }
         }
     }
+    #[inline]
     fn set_props(node: &Node, key: &String, value: &Value) {
         if key == "attributes" {
             if let &Value::Object(ref map) = value {
@@ -191,7 +193,7 @@ impl Patcher {
                 var node = @{node},
                     key = @{key},
                     value = @{value};
-                    
+
                 node[key] = value;
             }
         }
