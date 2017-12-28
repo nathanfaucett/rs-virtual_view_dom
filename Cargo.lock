@@ -87,7 +87,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "virtual_view"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "serde 1.0.26 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -97,12 +97,12 @@ dependencies = [
 
 [[package]]
 name = "virtual_view_dom"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde 1.0.26 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "stdweb 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "virtual_view 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "virtual_view 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [metadata]
@@ -118,4 +118,4 @@ dependencies = [
 "checksum syn 0.11.11 (registry+https://github.com/rust-lang/crates.io-index)" = "d3b891b9015c88c576343b9b3e41c2c11a51c219ef067b264bd9c8aa9b441dad"
 "checksum synom 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)" = "a393066ed9010ebaed60b9eafa373d4b1baac186dd7e008555b0f702b51945b6"
 "checksum unicode-xid 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)" = "8c1f860d7d29cf02cb2f3f359fd35991af3d30bac52c57d265a3c461074cb4dc"
-"checksum virtual_view 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "90d080ca1c93d6f1925bd43874e7982408ecae221548b9ced5c157e89b35b5e7"
+"checksum virtual_view 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "b3e5a80969412727cbc48055f58df146702c7d3081f672a5ad12a49944c276ef"

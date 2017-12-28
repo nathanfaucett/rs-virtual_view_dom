@@ -94,6 +94,7 @@ impl Events {
 
                     return map;
                 }.try_into().unwrap();
+                
                 let mut data = serde_json::Map::new();
                 for (k, v) in map {
                     data.insert(k, serde_json::to_value(v).unwrap());

@@ -144,12 +144,16 @@ impl Patcher {
             }
         } else if prev_prop.is_string() {
             js! {
-                var node = @{node}, key = @{key};
+                var node = @{node},
+                    key = @{key};
+
                 node[key] = "";
             }
         } else {
             js! {
-                var node = @{node}, key = @{key};
+                var node = @{node},
+                    key = @{key};
+
                 node[key] = null;
             }
         }
@@ -160,7 +164,10 @@ impl Patcher {
                 for (attr_key, attr_value) in map {
                     let value = value_to_string(attr_value);
                     js! {
-                        var node = @{node}, attr_key = @{attr_key}, attr_value = @{value};
+                        var node = @{node},
+                            attr_key = @{attr_key},
+                            attr_value = @{value};
+
                         node.addAttribute(attr_key, attr_value);
                     }
                 }
@@ -170,7 +177,10 @@ impl Patcher {
                 for (attr_key, attr_value) in map {
                     let value = value_to_string(attr_value);
                     js! {
-                        var node = @{node}, attr_key = @{attr_key}, attr_value = @{value};
+                        var node = @{node},
+                            attr_key = @{attr_key},
+                            attr_value = @{value};
+
                         node.style[attr_key] = attr_value;
                     }
                 }
@@ -178,7 +188,10 @@ impl Patcher {
         } else {
             let value = value_to_string(value);
             js! {
-                var node = @{node}, key = @{key}, value = @{value};
+                var node = @{node},
+                    key = @{key},
+                    value = @{value};
+                    
                 node[key] = value;
             }
         }

@@ -1,6 +1,6 @@
 [package]
 name = "virtual_view_dom"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Nathan Faucett <nathanfaucett@gmail.com>"]
 
 keywords = ["virtual", "view", "dom", "web"]
@@ -11,6 +11,10 @@ license = "MIT"
 readme = "README.md"
 repository = "https://gitlab.com/nathanfaucett/rs-virtual_view_dom.git"
 homepage = "https://gitlab.com/nathanfaucett/rs-virtual_view_dom"
+
+[lib]
+name = "virtual_view_dom"
+path = "src/lib.rs"
 
 [dependencies]
 virtual_view = "0.1"
