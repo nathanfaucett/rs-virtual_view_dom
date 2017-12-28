@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 
-use serde_json::Value;
+use serde_json::{Map, Value};
 use stdweb::web::{Document, INode, Node};
 use virtual_view::{RawView, Transaction, EventManager, Patch, get_view_id, value_to_string};
 
@@ -18,20 +18,17 @@ pub struct Patcher {
 impl Patcher {
 
     #[inline(always)]
-    pub fn new(root: Node, document: Document) -> Self {
+    pub fn new(root: Node, document: Document, event_manager: Arc<Mutex<EventManager>>) -> Self {
         Patcher {
             root: root,
             document: document,
-            events: Events::new(),
+            events: Events::new(event_manager),
             nodes: HashMap::new(),
         }
     }
 
     #[inline]
-    pub fn patch(&mut self, transaction: &Transaction, event_manager: Arc<Mutex<EventManager>>) {
-
-        self.events.set_event_manager(event_manager);
-
+    pub fn patch(&mut self, transaction: &Transaction) {
         for (id, patches) in transaction.patches() {
             let node = self.nodes.get(id).map(|n| n.clone());
 
@@ -107,60 +104,53 @@ impl Patcher {
             &Patch::Props(ref prev_props, ref diff_props) => {
                 let node = node.unwrap();
 
-                match diff_props {
-                    &Value::Object(ref map) => {
-                        for (key, value) in map {
-                            if value.is_null() {
-                                Self::remove_prop(node, key, prev_props);
-                            } else if let &Value::Object(_) = value {
-                                Self::set_props(node, key, value);
-                            } else {
-                                let value = value_to_string(value);
-                                js! {
-                                    var node = @{node};
-                                    node.setAttribute(@{key}, @{value});
-                                }
-                            }
+                for (key, value) in diff_props {
+                    if value.is_null() {
+                        Self::remove_prop(node, key, prev_props);
+                    } else if let &Value::Object(_) = value {
+                        Self::set_props(node, key, value);
+                    } else {
+                        let value = value_to_string(value);
+                        js! {
+                            var node = @{node};
+                            node.setAttribute(@{key}, @{value});
                         }
-                    },
-                    _ => {},
+                    }
                 }
             },
         }
     }
 
-    fn remove_prop(node: &Node, key: &String, prev_props: &Value) {
-        if let &Value::Object(ref prev_props) = prev_props {
-            let prev_prop = &prev_props[key];
+    fn remove_prop(node: &Node, key: &String, prev_props: &Map<String, Value>) {
+        let prev_prop = &prev_props[key];
 
-            if key == "attributes" {
-                if let &Value::Object(ref map) = prev_prop {
-                    for (attr_key, _) in map {
-                        js! {
-                            var node = @{node}, attr_key = @{attr_key};
-                            node.removeAttribute(attr_key);
-                        }
+        if key == "attributes" {
+            if let &Value::Object(ref map) = prev_prop {
+                for (attr_key, _) in map {
+                    js! {
+                        var node = @{node}, attr_key = @{attr_key};
+                        node.removeAttribute(attr_key);
                     }
                 }
-            } else if key == "style" {
-                if let &Value::Object(ref map) = prev_prop {
-                    for (attr_key, _) in map {
-                        js! {
-                            var node = @{node}, attr_key = @{attr_key};
-                            node.style[attr_key] = ""
-                        }
+            }
+        } else if key == "style" {
+            if let &Value::Object(ref map) = prev_prop {
+                for (attr_key, _) in map {
+                    js! {
+                        var node = @{node}, attr_key = @{attr_key};
+                        node.style[attr_key] = ""
                     }
                 }
-            } else if prev_prop.is_string() {
-                js! {
-                    var node = @{node}, key = @{key};
-                    node[key] = "";
-                }
-            } else {
-                js! {
-                    var node = @{node}, key = @{key};
-                    node[key] = null;
-                }
+            }
+        } else if prev_prop.is_string() {
+            js! {
+                var node = @{node}, key = @{key};
+                node[key] = "";
+            }
+        } else {
+            js! {
+                var node = @{node}, key = @{key};
+                node[key] = null;
             }
         }
     }

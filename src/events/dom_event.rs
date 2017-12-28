@@ -1,17 +1,17 @@
-use serde_json::Value;
+use serde_json::{Map, Value};
 use virtual_view::Event;
 
 
 #[derive(Debug, Clone)]
 pub struct DOMEvent {
     name: String,
-    data: Value,
+    data: Map<String, Value>,
     propagation: bool,
 }
 
 impl DOMEvent {
     #[inline(always)]
-    pub fn new(name: String, data: Value) -> Self {
+    pub fn new(name: String, data: Map<String, Value>) -> Self {
         DOMEvent {
             name: name,
             data: data,
@@ -24,7 +24,7 @@ impl Event for DOMEvent {
     #[inline(always)]
     fn name(&self) -> &String { &self.name }
     #[inline(always)]
-    fn data(&self) -> &Value { &self.data }
+    fn data(&self) -> &Map<String, Value> { &self.data }
     #[inline(always)]
     fn propagation(&self) -> bool { self.propagation }
     #[inline(always)]

@@ -1,10 +1,16 @@
 virtual_view_dom
 =====
 
-a virtual_view transaction renderer for the dom
+a virtual view transaction renderer for the dom
+
+# Build Examples
+```bash
+$ cargo build --example counter --target asmjs-unknown-emscripten
+$ cargo build --example simple --target asmjs-unknown-emscripten
+```
 
 ```rust
-#![feature(const_atomic_usize_new)]
+#![feature(const_atomic_isize_new)]
 
 
 extern crate stdweb;
@@ -15,46 +21,56 @@ extern crate virtual_view;
 extern crate virtual_view_dom;
 
 
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicIsize, Ordering};
 
-use stdweb::web::*;
-use virtual_view::*;
-use virtual_view_dom::*;
+use stdweb::web::document;
 
-
-static COUNT: AtomicUsize = AtomicUsize::new(0_usize);
-static DIR: AtomicUsize = AtomicUsize::new(1_usize);
+use virtual_view::{EventManager, Event, View, Renderer};
+use virtual_view_dom::Patcher;
 
 
-fn render(count: usize) -> View {
-    let children: Vec<View> = (0..count).map(|c| {
-        let index = count - c;
-        view!("a", {"key": index, "x-index": c, "style": {"z-index": index}},
-            [text!("{}", index)]
-        )
-    }).collect();
-    view!("div", {"class": "Root"}, children)
+static COUNT: AtomicIsize = AtomicIsize::new(0_isize);
+static mut PATCHER: Option<Patcher> = None;
+static mut RENDERER: Option<Renderer> = None;
+static mut EVENT_MANAGER: Option<Arc<Mutex<EventManager>>> = None;
+
+
+fn on_add_count(_: &mut Event) {
+    println!("ADD");
+    COUNT.fetch_add(1, Ordering::Relaxed);
+    on_render();
+}
+fn on_sub_count(_: &mut Event) {
+    println!("SUB");
+    COUNT.fetch_sub(1, Ordering::Relaxed);
+    on_render();
 }
 
-fn on_render(mut patcher: Patcher, mut renderer: Renderer) {
-    let last_count = COUNT.load(Ordering::Relaxed);
-
-    if last_count == 1_usize {
-        DIR.store(1_usize, Ordering::Relaxed);
-    } else if last_count >= 9_usize {
-        DIR.store(0_usize, Ordering::Relaxed);
+fn render(count: isize) -> View {
+    virtual_view! {
+      <div class="Root">
+        <p style={{ "color": if count < 0 {"#F00"} else {"#000"} }}>
+          {format!("Count: {}", count)}
+        </p>
+        <button class="Add" style={{ "color": "#000", "background-color": "#FFF" }} click => on_add_count>
+          {"Add"}
+        </button>
+        <button class="Sub" style={{ "color": "#000", "background-color": "#FFF" }} click => on_sub_count>
+          {"Sub"}
+        </button>
+      </div>
     }
+}
 
-    let count = if DIR.load(Ordering::Relaxed) == 1_usize {
-        COUNT.fetch_add(1_usize, Ordering::Relaxed)
-    } else {
-        COUNT.fetch_sub(1_usize, Ordering::Relaxed)
-    };
-
+fn on_render() {
+    let patcher = unsafe { PATCHER.as_mut().unwrap() };
+    let renderer = unsafe { RENDERER.as_mut().unwrap() };
+    let event_manager = unsafe { EVENT_MANAGER.as_ref().unwrap() };
+    let count = COUNT.load(Ordering::Relaxed);
     let view = render(count);
-    let transaction = renderer.render(view);
-    patcher.patch(&transaction);
-    set_timeout(move || on_render(patcher, renderer), 100);
+    let transaction = renderer.render(view, &mut *event_manager.lock().unwrap());
+    patcher.patch(&transaction, event_manager.clone());
 }
 
 
@@ -63,8 +79,15 @@ fn main() {
 
     let patcher = Patcher::new(document().get_element_by_id("app").unwrap().into(), document());
     let renderer = Renderer::new();
+    let event_manager = Arc::new(Mutex::new(EventManager::new()));
 
-    on_render(patcher, renderer);
+    unsafe {
+        PATCHER = Some(patcher);
+        RENDERER = Some(renderer);
+        EVENT_MANAGER = Some(event_manager);
+    }
+
+    on_render();
 
     stdweb::event_loop();
 }

@@ -4,4 +4,3 @@ image: "scorpil/rust:nightly"
 test:cargo:
   script:
   - rustc --version && cargo --version
-  - cargo test --verbose --jobs 1 --release

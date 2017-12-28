@@ -36,23 +36,19 @@ fn on_sub_count(_: &mut Event) {
 }
 
 fn render(count: isize) -> View {
-    View::new("div",
-        json!({"class": "Root"}),
-        events!(),
-        vec![
-            text!("Count: {}", count),
-            View::new("button",
-                json!({"class": "Add"}),
-                events!({"click" => on_add_count}),
-                vec![text!("Add")]
-            ),
-            View::new("button",
-                json!({"class": "Sub"}),
-                events!({"click" => on_sub_count}),
-                vec![text!("Sub")]
-            )
-        ]
-    )
+    virtual_view! {
+        <div class="Root">
+            <p style={{ "color": if count < 0 {"#F00"} else {"#000"} }}>
+                {format!("Count: {}", count)}
+            </p>
+            <button class="Add" style={{ "color": "#000", "background-color": "#FFF" }} click => on_add_count>
+                {"Add"}
+            </button>
+            <button class="Sub" style={{ "color": "#000", "background-color": "#FFF" }} click => on_sub_count>
+                {"Sub"}
+            </button>
+        </div>
+    }
 }
 
 fn on_render() {
@@ -62,16 +58,16 @@ fn on_render() {
     let count = COUNT.load(Ordering::Relaxed);
     let view = render(count);
     let transaction = renderer.render(view, &mut *event_manager.lock().unwrap());
-    patcher.patch(&transaction, event_manager.clone());
+    patcher.patch(&transaction);
 }
 
 
 fn main() {
     stdweb::initialize();
 
-    let patcher = Patcher::new(document().get_element_by_id("app").unwrap().into(), document());
-    let renderer = Renderer::new();
     let event_manager = Arc::new(Mutex::new(EventManager::new()));
+    let patcher = Patcher::new(document().get_element_by_id("app").unwrap().into(), document(), event_manager.clone());
+    let renderer = Renderer::new();
 
     unsafe {
         PATCHER = Some(patcher);

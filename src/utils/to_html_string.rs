@@ -1,4 +1,4 @@
-use serde_json::Value;
+use serde_json::{Map, Value};
 use virtual_view::{View, RawView};
 
 
@@ -34,33 +34,28 @@ impl ToHtmlString for RawView {
 
 
 #[inline]
-fn props_to_html_string(props: &Value) -> String {
-    match props {
-        &Value::Object(ref props) => {
-            let mut out = String::new();
-            let mut index = props.len();
+fn props_to_html_string(props: &Map<String, Value>) -> String {
+    let mut out = String::new();
+    let mut index = props.len();
 
-            if index != 0 {
-                out.push(' ');
-            }
-
-            for (k, v) in props {
-                out.push_str(k);
-                out.push('=');
-                out.push('"');
-                out.push_str(&prop_to_html_string(v));
-                out.push('"');
-
-                index -= 1;
-                if index >= 1 {
-                    out.push(' ');
-                }
-            }
-
-            out
-        },
-        _ => "".into()
+    if index != 0 {
+        out.push(' ');
     }
+
+    for (k, v) in props {
+        out.push_str(k);
+        out.push('=');
+        out.push('"');
+        out.push_str(&prop_to_html_string(v));
+        out.push('"');
+
+        index -= 1;
+        if index >= 1 {
+            out.push(' ');
+        }
+    }
+
+    out
 }
 
 #[inline]
@@ -101,8 +96,10 @@ fn children_to_html_string(children: &Vec<RawView>) -> String {
 
 #[test]
 fn test_to_html_string() {
-    let view = View::new("div", json!({"class": "Root", "style": {"font-size": "32px"}}), events!(),
-        vec![text!("Hello, world!")]
-    );
+    let view = virtual_view! {
+        <div class="Root" style={{"font-size": "32px"}}>
+            {"Hello, world!"}
+        </div>
+    };
     assert_eq!(view.to_html_string(), "<div class=\"Root\" style=\"font-size: 32px;\"><span>Hello, world!</span></div>");
 }

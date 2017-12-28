@@ -1,4 +1,3 @@
-use std::mem;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::collections::HashMap;
 
@@ -15,23 +14,18 @@ use super::{NodeRef, DOMEvent};
 pub struct Events {
     listening: HashMap<String, usize>,
     node_to_ids: Arc<Mutex<HashMap<NodeRef, String>>>,
-    pub(crate) event_manager: Arc<Mutex<EventManager>>,
+    event_manager: Arc<Mutex<EventManager>>,
 }
 
 impl Events {
 
     #[inline(always)]
-    pub fn new() -> Self {
+    pub fn new(event_manager: Arc<Mutex<EventManager>>) -> Self {
         Events {
             listening:  HashMap::new(),
             node_to_ids: Arc::new(Mutex::new(HashMap::new())),
-            event_manager: unsafe { mem::uninitialized() },
+            event_manager: event_manager,
         }
-    }
-
-    #[inline]
-    pub fn set_event_manager(&mut self, event_manager: Arc<Mutex<EventManager>>) {
-        self.event_manager = event_manager;
     }
 
     #[inline]
@@ -100,7 +94,10 @@ impl Events {
 
                     return map;
                 }.try_into().unwrap();
-                let data = serde_json::to_value(map).unwrap();
+                let mut data = serde_json::Map::new();
+                for (k, v) in map {
+                    data.insert(k, serde_json::to_value(v).unwrap());
+                }
 
                 let event_manager = event_manager.lock().expect("failed to acquire event manager lock");
                 let mut event = DOMEvent::new(name, data);

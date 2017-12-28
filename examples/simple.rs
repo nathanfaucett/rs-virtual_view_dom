@@ -23,18 +23,17 @@ static DIR: AtomicUsize = AtomicUsize::new(1_usize);
 
 
 fn render(count: usize) -> View {
-    View::new("div",
-        json!({"class": "Root"}),
-        events!(),
-        (0..count).map(|c| {
-            let index = count - c;
-            View::new("a",
-                json!({"key": index, "x-index": c, "style": {"z-index": index}}),
-                events!(),
-                vec![text!("{}", index)]
-            )
-        }).collect()
-    )
+    virtual_view! {
+        <div class="Root">
+            { each (0..count).map(|c| {
+                let index = count - c;
+
+                virtual_view! {
+                    <a key={index} "x-index"={c} style={{ "z-index": index }}>{index}</a>
+                }
+            }) }
+        </div>
+    }
 }
 
 fn on_render(mut patcher: Patcher, mut renderer: Renderer, event_manager: Arc<Mutex<EventManager>>) {
@@ -54,17 +53,17 @@ fn on_render(mut patcher: Patcher, mut renderer: Renderer, event_manager: Arc<Mu
 
     let view = render(count);
     let transaction = renderer.render(view, &mut *event_manager.lock().unwrap());
-    patcher.patch(&transaction, event_manager.clone());
-    set_timeout(move || on_render(patcher, renderer, event_manager), 100);
+    patcher.patch(&transaction);
+    set_timeout(move || on_render(patcher, renderer, event_manager), 1000 / 24);
 }
 
 
 fn main() {
     stdweb::initialize();
 
-    let patcher = Patcher::new(document().get_element_by_id("app").unwrap().into(), document());
-    let renderer = Renderer::new();
     let event_manager = Arc::new(Mutex::new(EventManager::new()));
+    let patcher = Patcher::new(document().get_element_by_id("app").unwrap().into(), document(), event_manager.clone());
+    let renderer = Renderer::new();
 
     on_render(patcher, renderer, event_manager);
 

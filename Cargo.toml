@@ -3,15 +3,17 @@ name = "virtual_view_dom"
 version = "0.1.0"
 authors = ["Nathan Faucett <nathanfaucett@gmail.com>"]
 
-keywords = ["virtual", "view", "dom"]
-description = "a virtual_view transaction renderer for the dom"
+keywords = ["virtual", "view", "dom", "web"]
+categories = ["gui"]
+
+description = "a virtual view transaction renderer for the dom"
 license = "MIT"
 readme = "README.md"
 repository = "https://gitlab.com/nathanfaucett/rs-virtual_view_dom.git"
 homepage = "https://gitlab.com/nathanfaucett/rs-virtual_view_dom"
 
 [dependencies]
-virtual_view = {git = "https://gitlab.com/nathanfaucett/rs-virtual_view.git"}#{path = "../rs-virtual_view"}
+virtual_view = "0.1"
 stdweb = "0.2"
 serde_json = "1.0"
 
