@@ -1,118 +1,128 @@
-use std::sync::{Arc, Mutex, MutexGuard};
-use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
-use stdweb::{Reference, Value};
-use stdweb::web::{Document, Node, EventTarget};
+use stdweb::Reference;
+use stdweb::web::{Document, Node};
 use stdweb::unstable::TryInto;
-
-use serde_json;
+use serde_json::{self, Map, Value};
+use fnv::FnvHashMap;
 use virtual_view::EventManager;
 
-use super::{NodeRef, DOMEvent};
+use super::super::NodesIds;
+use super::DOMEvent;
 
 
 pub struct Events {
-    listening: HashMap<String, usize>,
-    node_to_ids: Arc<Mutex<HashMap<NodeRef, String>>>,
+    listening: FnvHashMap<String, usize>,
+    listening_handlers: FnvHashMap<String, FnvHashMap<String, Reference>>,
     event_manager: Arc<Mutex<EventManager>>,
 }
 
 impl Events {
-
     #[inline(always)]
     pub fn new(event_manager: Arc<Mutex<EventManager>>) -> Self {
         Events {
-            listening:  HashMap::new(),
-            node_to_ids: Arc::new(Mutex::new(HashMap::new())),
+            listening: FnvHashMap::default(),
+            listening_handlers: FnvHashMap::default(),
             event_manager: event_manager,
         }
     }
 
     #[inline]
-    fn node_to_ids(&self) -> MutexGuard<HashMap<NodeRef, String>> {
-        self.node_to_ids.lock().expect("failed to acquire node to ids lock")
-    }
-
-    #[inline]
-    pub fn listen(&mut self, name: &str, id: &str, node: &Node, document: &Document) {
-
-        self.node_to_ids().insert(node.as_ref().into(), id.into());
-
+    pub fn listen(
+        &mut self,
+        name: &str,
+        id: &str,
+        node: &Node,
+        nodes: &Arc<Mutex<NodesIds>>,
+        document: &Document
+    ) {
         if !self.listening.contains_key(name) {
             self.listening.insert(name.into(), 1);
-            self.add_event_listener(name, id, node, document);
+            self.add_event_listener(name, id, node, nodes, document);
         } else {
             self.listening.get_mut(name).map(|count| { *count += 1 });
         }
     }
     #[inline]
-    pub fn unlisten(&mut self, name: &str, id: &str, node: &Node, document: &Document) {
+    pub fn unlisten(
+        &mut self,
+        name: &str,
+        id: &str,
+        node: &Node,
+        nodes: &Arc<Mutex<NodesIds>>,
+        document: &Document
+    ) {
         let count = if let Some(count) = self.listening.get_mut(name) {
             *count -= 1;
             Some(*count)
         } else {
             None
         };
-
-        let node_ref: NodeRef = node.as_ref().into();
-        self.node_to_ids().remove(&node_ref);
-
         if count == Some(0) {
             self.listening.remove(name);
-            self.remove_event_listener(name, id, node, document);
+            self.remove_event_listener(name, id, node, nodes, document);
         }
     }
 
     #[inline]
-    fn handle(node_to_ids: &Arc<Mutex<HashMap<NodeRef, String>>>, event_manager: &Arc<Mutex<EventManager>>, event: Reference) {
-        let option: Option<EventTarget> = js! {
-            return @{event.as_ref()}.target;
-        }.try_into().ok();
+    fn event_to_json(event: &Reference) -> Map<String, Value> {
+        let object = js! {
+            var event = @{event.as_ref()},
+                map = {},
+                key, value, type;
 
-        if let Some(target) = option {
+            for (key in event) {
+                value = event[key];
+                type = typeof(value);
+
+                if (value != null && type !== "function") {
+                    map[key] = value;
+                }
+            }
+
+            return map;
+        };
+
+        match serde_json::to_value(object).unwrap() {
+            Value::Object(json) => json,
+            _ => unreachable!(),
+        }
+    }
+
+    #[inline]
+    fn handle(
+        event_manager: &Arc<Mutex<EventManager>>,
+        nodes_ids: &Arc<Mutex<NodesIds>>,
+        event: Reference
+    ) {
+        let target: Node = js! {
+            return @{event.as_ref()}.target;
+        }.try_into().unwrap();
+
+        if let Some(id) = nodes_ids.lock().expect("failed to acquire nodes_ids lock").get_id(&target) {
             let name: String = js! {
                 return @{event.as_ref()}.type;
             }.try_into().unwrap();
 
-            let node_ref: NodeRef = target.as_ref().into();
-            let node_to_ids = node_to_ids.lock().expect("failed to acquire node to ids lock");
-
-            if let Some(id) = node_to_ids.get(&node_ref) {
-                let map: HashMap<String, Value> = js! {
-                    var event = @{event.as_ref()},
-                        map = {},
-                        key, value, type;
-
-                    for (key in event) {
-                        value = event[key];
-                        type = typeof(value);
-
-                        if (value != null && type !== "function") {
-                            map[key] = value;
-                        }
-                    }
-
-                    return map;
-                }.try_into().unwrap();
-                
-                let mut data = serde_json::Map::new();
-                for (k, v) in map {
-                    data.insert(k, serde_json::to_value(v).unwrap());
-                }
-
-                let event_manager = event_manager.lock().expect("failed to acquire event manager lock");
-                let mut event = DOMEvent::new(name, data);
-                event_manager.dispatch(id, &mut event);
-            }
+            let mut event = DOMEvent::new(name, Self::event_to_json(&event));
+            event_manager.lock().expect("failed to acquire event_manager lock")
+                .dispatch(id, &mut event);
         }
     }
 
     #[inline]
-    fn add_event_listener(&mut self, name: &str, _id: &str, _node: &Node, document: &Document) {
-        let node_to_ids = self.node_to_ids.clone();
+    fn add_event_listener(
+        &mut self,
+        name: &str,
+        id: &str,
+        _node: &Node,
+        nodes_ids: &Arc<Mutex<NodesIds>>,
+        document: &Document
+    ) {
         let event_manager = self.event_manager.clone();
-        let listener = move |e| Self::handle(&node_to_ids, &event_manager, e);
-        let _listener_reference: Reference = js! {
+        let nodes_ids = nodes_ids.clone();
+        let listener = move |e| Self::handle(&event_manager, &nodes_ids, e);
+        let listener_reference: Reference = js! {
             var type = @{name},
                 document = @{document},
                 listener = @{listener};
@@ -120,9 +130,31 @@ impl Events {
             document.addEventListener(type, listener);
             return listener;
         }.try_into().unwrap();
+
+        self.listening_handlers
+            .entry(name.into()).or_insert(FnvHashMap::default())
+            .insert(id.into(), listener_reference);
+
     }
     #[inline]
-    fn remove_event_listener(&mut self, _name: &str, _id: &str, _node: &Node, _document: &Document) {
+    fn remove_event_listener(
+        &mut self,
+        name: &str,
+        id: &str,
+        _node: &Node,
+        _nodes_ids: &Arc<Mutex<NodesIds>>,
+        document: &Document
+    ) {
+        let listener_reference = self.listening_handlers
+            .entry(name.into()).or_insert(FnvHashMap::default())
+            .get(id);
 
+        js! {
+            var type = @{name},
+                document = @{document},
+                listener = @{listener_reference.as_ref()};
+
+            document.removeEventListener(type, listener);
+        };
     }
 }

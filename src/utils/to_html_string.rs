@@ -36,23 +36,14 @@ impl ToHtmlString for RawView {
 #[inline]
 fn props_to_html_string(props: &Map<String, Value>) -> String {
     let mut out = String::new();
-    let mut index = props.len();
-
-    if index != 0 {
-        out.push(' ');
-    }
 
     for (k, v) in props {
+        out.push(' ');
         out.push_str(k);
         out.push('=');
         out.push('"');
         out.push_str(&prop_to_html_string(v));
         out.push('"');
-
-        index -= 1;
-        if index >= 1 {
-            out.push(' ');
-        }
     }
 
     out
@@ -65,14 +56,22 @@ fn prop_to_html_string(prop: &Value) -> String {
         &Value::Bool(ref value) => value.to_string(),
         &Value::Number(ref value) => value.to_string(),
         &Value::String(ref value) => value.clone(),
-        &Value::Array(ref array) => array.iter().map(|v| prop_to_html_string(v)).collect(),
+        &Value::Array(ref array) => {
+            let mut out = String::new();
+
+            for v in array {
+                out.push_str(&prop_to_html_string(v));
+                out.push(',');
+            }
+
+            out
+        },
         &Value::Object(ref map) => {
             let mut out = String::new();
 
             for (k, v) in map {
                 out.push_str(k);
                 out.push(':');
-                out.push(' ');
                 out.push_str(&prop_to_html_string(v));
                 out.push(';');
             }
@@ -97,9 +96,12 @@ fn children_to_html_string(children: &Vec<RawView>) -> String {
 #[test]
 fn test_to_html_string() {
     let view = virtual_view! {
-        <div class="Root" style={{"font-size": "32px"}}>
+        <div class="Root" style={{"font-size": "32px", "color": "#F00"}} array={[0, 1, 2]}>
             {"Hello, world!"}
         </div>
     };
-    assert_eq!(view.to_html_string(), "<div class=\"Root\" style=\"font-size: 32px;\"><span>Hello, world!</span></div>");
+    assert_eq!(
+        view.to_html_string(),
+        "<div array=\"0,1,2,\" class=\"Root\" style=\"color:#F00;font-size:32px;\"><span>Hello, world!</span></div>"
+    );
 }

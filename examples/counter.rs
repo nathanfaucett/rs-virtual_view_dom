@@ -12,7 +12,7 @@ extern crate virtual_view_dom;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicIsize, Ordering};
 
-use stdweb::web::document;
+use stdweb::web::{document, set_timeout};
 
 use virtual_view::{EventManager, Event, View, Renderer};
 use virtual_view_dom::Patcher;
@@ -25,17 +25,15 @@ static mut EVENT_MANAGER: Option<Arc<Mutex<EventManager>>> = None;
 
 
 fn on_add_count(_: &mut Event) {
-    println!("ADD");
     COUNT.fetch_add(1, Ordering::Relaxed);
-    on_render();
+    enqueue_render();
 }
 fn on_sub_count(_: &mut Event) {
-    println!("SUB");
     COUNT.fetch_sub(1, Ordering::Relaxed);
-    on_render();
+    enqueue_render();
 }
 
-fn render(count: isize) -> View {
+fn counter_render(count: isize) -> View {
     virtual_view! {
         <div class="Root">
             <p style={{ "color": if count < 0 {"#F00"} else {"#000"} }}>
@@ -51,14 +49,18 @@ fn render(count: isize) -> View {
     }
 }
 
-fn on_render() {
+fn render() {
     let patcher = unsafe { PATCHER.as_mut().unwrap() };
     let renderer = unsafe { RENDERER.as_mut().unwrap() };
     let event_manager = unsafe { EVENT_MANAGER.as_ref().unwrap() };
     let count = COUNT.load(Ordering::Relaxed);
-    let view = render(count);
-    let transaction = renderer.render(view, &mut *event_manager.lock().unwrap());
+    let view = counter_render(count);
+    let transaction = renderer.render(view, &mut *event_manager.lock().expect("failed to acquire event_manager lock"));
     patcher.patch(&transaction);
+}
+
+fn enqueue_render() {
+    set_timeout(render, 0);
 }
 
 
@@ -75,7 +77,7 @@ fn main() {
         EVENT_MANAGER = Some(event_manager);
     }
 
-    on_render();
+    enqueue_render();
 
     stdweb::event_loop();
 }

@@ -14,12 +14,6 @@ impl NodeRef {
     }
 }
 
-impl From<Reference> for NodeRef {
-    #[inline]
-    fn from(reference: Reference) -> Self {
-        Self::from(&reference)
-    }
-}
 impl<'a> From<&'a Reference> for NodeRef {
     #[inline]
     fn from(reference: &'a Reference) -> Self {

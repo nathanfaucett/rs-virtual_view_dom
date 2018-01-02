@@ -1,43 +1,51 @@
-use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
+use std::sync::{Arc, Mutex, MutexGuard};
 
+use fnv::FnvHashMap;
 use serde_json::{Map, Value};
 use stdweb::web::{Document, INode, Node};
-use virtual_view::{RawView, Transaction, EventManager, Patch, get_view_id, value_to_string};
+use virtual_view::{RawView, Transaction, EventManager, Patch, view_id, value_to_string};
 
-use super::{Events, ToHtmlString};
+use super::{NodesIds, Events, ToHtmlString};
 
 
 pub struct Patcher {
     root: Node,
     document: Document,
     events: Events,
-    nodes: HashMap<String, Node>,
+    nodes_ids: Arc<Mutex<NodesIds>>,
 }
 
 impl Patcher {
-
     #[inline(always)]
     pub fn new(root: Node, document: Document, event_manager: Arc<Mutex<EventManager>>) -> Self {
         Patcher {
             root: root,
             document: document,
             events: Events::new(event_manager),
-            nodes: HashMap::new(),
+            nodes_ids: Arc::new(Mutex::new(NodesIds::new())),
         }
+    }
+
+    #[inline]
+    fn nodes_ids(&self) -> MutexGuard<NodesIds> {
+        self.nodes_ids.lock().expect("failed to acquire nodes_ids lock")
+    }
+    #[inline]
+    fn nodes_ids_mut(&mut self) -> MutexGuard<NodesIds> {
+        self.nodes_ids.lock().expect("failed to acquire nodes_ids lock")
     }
 
     #[inline]
     pub fn patch(&mut self, transaction: &Transaction) {
         for (id, patches) in transaction.patches() {
-            let node = self.nodes.get(id).map(|n| n.clone());
+            let node = self.nodes_ids().get_node(id).map(|n| n.clone());
 
             for patch in patches {
                 self.apply_patch(id, node.as_ref(), patch);
             }
         }
         for (id, view) in transaction.removes() {
-            if let Some(node) = self.nodes.get(id) {
+            if let Some(node) = self.nodes_ids().get_node(id) {
                 let parent = node.parent_node().expect("node has no parent");
                 let _ = parent.remove_child(node);
             }
@@ -45,11 +53,13 @@ impl Patcher {
         }
         for (id, events) in transaction.events() {
             for (name, value) in events {
-                if let Some(node) = self.nodes.get(id) {
+                let node_option = self.nodes_ids().get_node(id).map(|x| x.clone());
+
+                if let Some(node) = node_option {
                     if *value {
-                        self.events.listen(name, id, node, &self.document);
+                        self.events.listen(name, id, &node, &self.nodes_ids, &self.document);
                     } else {
-                        self.events.unlisten(name, id, node, &self.document);
+                        self.events.unlisten(name, id, &node, &self.nodes_ids, &self.document);
                     }
                 }
             }
@@ -76,7 +86,7 @@ impl Patcher {
             &Patch::Order(ref order) => {
                 let parent_node = node.unwrap();
                 let child_nodes: Vec<_> = parent_node.child_nodes().iter().collect();
-                let mut key_map = HashMap::new();
+                let mut key_map = FnvHashMap::default();
 
                 for &(index, ref key) in order.removes() {
                     let child_node = &child_nodes[index];
@@ -205,7 +215,7 @@ impl Patcher {
             &RawView::Text(ref text) => {
                 let node: Node = self.document.create_element("span").into();
                 node.set_text_content(text);
-                self.nodes.insert(id.clone(), node.clone());
+                self.nodes_ids_mut().insert(id.clone(), node.clone());
                 node
             },
             &RawView::Data { .. } => {
@@ -227,7 +237,7 @@ impl Patcher {
     #[inline]
     fn set_child_nodes_id(&mut self, node: &Node, id: &String, view: &RawView) {
 
-        self.nodes.insert(id.clone(), node.clone());
+        self.nodes_ids_mut().insert(id.clone(), node.clone());
 
         match view {
             &RawView::Data { ref children, .. } => {
@@ -235,7 +245,7 @@ impl Patcher {
 
                 for child_node in node.child_nodes().iter() {
                     let child = &children[index];
-                    let child_id = get_view_id(id, child.key(), index);
+                    let child_id = view_id(id, child.key(), index);
                     self.set_child_nodes_id(&child_node, &child_id, child);
                     index += 1;
                 }
@@ -246,14 +256,16 @@ impl Patcher {
 
     #[inline]
     fn remove_child_nodes_id(&mut self, id: &String, view: &RawView) {
-        if let Some(node) = self.nodes.remove(id) {
+        let node_option = self.nodes_ids_mut().remove_id(id);
+
+        if let Some(node) = node_option {
             match view {
                 &RawView::Data { ref children, .. } => {
                     let mut index = 0;
 
                     for _child_node in node.child_nodes().iter() {
                         let child = &children[index];
-                        let child_id = get_view_id(id, child.key(), index);
+                        let child_id = view_id(id, child.key(), index);
                         self.remove_child_nodes_id(&child_id, child);
                         index += 1;
                     }

@@ -54,7 +54,7 @@ fn on_render(mut patcher: Patcher, mut renderer: Renderer, event_manager: Arc<Mu
     let view = render(count);
     let transaction = renderer.render(view, &mut *event_manager.lock().unwrap());
     patcher.patch(&transaction);
-    set_timeout(move || on_render(patcher, renderer, event_manager), 1000 / 24);
+    set_timeout(move || on_render(patcher, renderer, event_manager), 0);
 }
 
 
