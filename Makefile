@@ -2,15 +2,15 @@
 
 all: examples
 
-example_counter:
+counter:
 	cargo web build --example counter --target-webasm
 	make copy_counter
 
-example_simple:
+simple:
 	cargo web build --example simple --target-webasm
 	make copy_simple
 
-examples: example_counter example_simple
+examples: counter simple
 
 copy_counter:
 	cp target/wasm32-unknown-unknown/release/examples/counter.wasm examples
@@ -22,4 +22,4 @@ clean:
 	rm examples/counter.wasm examples/simple.wasm
 
 
-.PHONY: all example_counter example_simple examples copy_counter copy_simple clean
+.PHONY: all counter simple examples copy_counter copy_simple clean

@@ -73,9 +73,15 @@ impl Patcher {
                 let new_node = self.create_node(id, view);
                 self.root.append_child(&new_node);
             },
-            &Patch::Insert(ref child_id, _index, ref view) => {
+            &Patch::Insert(ref child_id, index, ref view) => {
                 let new_node = self.create_node(child_id, view);
-                node.unwrap().append_child(&new_node);
+                let node = node.unwrap();
+
+                if let Some(next_node) = node.child_nodes().iter().nth(index + 1) {
+                    node.insert_before(&new_node, &next_node);
+                }  else {
+                    node.append_child(&new_node);
+                }
             },
             &Patch::Replace(ref _prev_view, ref next_view) => {
                 let new_node = self.create_node(id, next_view);

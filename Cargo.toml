@@ -1,6 +1,6 @@
 [package]
 name = "virtual_view_dom"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["Nathan Faucett <nathanfaucett@gmail.com>"]
 
 keywords = ["virtual", "view", "dom", "web"]

@@ -29,7 +29,7 @@ fn render(count: usize) -> View {
                 let index = count - c;
 
                 virtual_view! {
-                    <a key={index} "x-index"={c} style={{ "z-index": index }}>{index}</a>
+                    <a key={c} style={{ "z-index": index }}>{index}</a>
                 }
             }) }
         </div>
