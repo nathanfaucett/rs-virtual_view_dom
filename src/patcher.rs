@@ -92,7 +92,7 @@ impl Patcher {
             }
             &Patch::Replace(ref _prev_view, ref next_view) => {
                 let new_node = self.create_node(id, next_view);
-                let old_node = node.expect("node is not any tree");
+                let old_node = node.expect("node is not in tree");
                 let parent = old_node.parent_node().expect("node has no parent");
                 parent.replace_child(&new_node, old_node);
             }
