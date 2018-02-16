@@ -1,11 +1,9 @@
 use serde_json::{Map, Value};
-use virtual_view::{View, RawView};
-
+use view::{RawView, View};
 
 pub trait ToHtmlString {
     fn to_html_string(&self) -> String;
 }
-
 
 impl ToHtmlString for View {
     #[inline]
@@ -15,13 +13,17 @@ impl ToHtmlString for View {
     }
 }
 
-
 impl ToHtmlString for RawView {
     #[inline]
     fn to_html_string(&self) -> String {
         match self {
             &RawView::Text(ref string) => format!("<span>{}</span>", string),
-            &RawView::Data { ref kind, ref props, ref children, .. } => format!(
+            &RawView::Data {
+                ref kind,
+                ref props,
+                ref children,
+                ..
+            } => format!(
                 "<{}{}>{}</{}>",
                 kind,
                 props_to_html_string(props),
@@ -31,7 +33,6 @@ impl ToHtmlString for RawView {
         }
     }
 }
-
 
 #[inline]
 fn props_to_html_string(props: &Map<String, Value>) -> String {
@@ -65,7 +66,7 @@ fn prop_to_html_string(prop: &Value) -> String {
             }
 
             out
-        },
+        }
         &Value::Object(ref map) => {
             let mut out = String::new();
 
@@ -77,7 +78,7 @@ fn prop_to_html_string(prop: &Value) -> String {
             }
 
             out
-        },
+        }
     }
 }
 
@@ -92,10 +93,9 @@ fn children_to_html_string(children: &Vec<RawView>) -> String {
     out
 }
 
-
 #[test]
 fn test_to_html_string() {
-    let view = virtual_view! {
+    let view = view! {
         <div class="Root" style={{"font-size": "32px", "color": "#F00"}} array={[0, 1, 2]}>
             {"Hello, world!"}
         </div>

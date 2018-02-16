@@ -3,7 +3,6 @@ use stdweb::web::Node;
 
 use super::NodeRef;
 
-
 pub struct NodesIds {
     nodes: FnvHashMap<String, Node>,
     ids: FnvHashMap<NodeRef, String>,

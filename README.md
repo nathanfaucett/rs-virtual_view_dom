@@ -1,97 +1,129 @@
-virtual_view_dom
+view_dom
 =====
 
 a virtual view transaction renderer for the dom
 
 # Build Examples
 ```bash
-$ cargo install cargo-web
+$ cargo install -f cargo-web
 ```
 ```bash
 $ make
 ```
 
 ```rust
-#![feature(const_atomic_isize_new)]
-
-
+extern crate serde_json;
 extern crate stdweb;
 #[macro_use]
-extern crate serde_json;
-#[macro_use]
-extern crate virtual_view;
-extern crate virtual_view_dom;
+extern crate view;
+extern crate view_dom;
 
+use stdweb::web::{document, IEventTarget};
+use view::{Children, Component, Event, EventManager, Props, Renderer, Updater, View};
+use view_dom::{Handler, Patcher, TransactionEvent};
 
-use std::sync::{Arc, Mutex};
-use std::sync::atomic::{AtomicIsize, Ordering};
+struct Button;
 
-use stdweb::web::{document, set_timeout};
-
-use virtual_view::{EventManager, Event, View, Renderer};
-use virtual_view_dom::Patcher;
-
-
-static COUNT: AtomicIsize = AtomicIsize::new(0_isize);
-static mut PATCHER: Option<Patcher> = None;
-static mut RENDERER: Option<Renderer> = None;
-static mut EVENT_MANAGER: Option<Arc<Mutex<EventManager>>> = None;
-
-
-fn on_add_count(_: &mut Event) {
-    COUNT.fetch_add(1, Ordering::Relaxed);
-    enqueue_render();
-}
-fn on_sub_count(_: &mut Event) {
-    COUNT.fetch_sub(1, Ordering::Relaxed);
-    enqueue_render();
-}
-
-fn counter_render(count: isize) -> View {
-    virtual_view! {
-        <div class="Root">
-            <p style={{ "color": if count < 0 {"#F00"} else {"#000"} }}>
-                {format!("Count: {}", count)}
-            </p>
-            <button class="Add" style={{ "color": "#000", "background-color": "#FFF" }} click => on_add_count>
-                {"Add"}
-            </button>
-            <button class="Sub" style={{ "color": "#000", "background-color": "#FFF" }} click => on_sub_count>
-                {"Sub"}
-            </button>
-        </div>
+impl Component for Button {
+    #[inline]
+    fn name(&self) -> &'static str {
+        "Button"
+    }
+    #[inline]
+    fn render(&self, _: &Updater, _: &Props, props: &Props, children: &Children) -> View {
+        view! {
+            <button class="Button" ... { props }>{ each children }</button>
+        }
     }
 }
 
-fn render() {
-    let patcher = unsafe { PATCHER.as_mut().unwrap() };
-    let renderer = unsafe { RENDERER.as_mut().unwrap() };
-    let event_manager = unsafe { EVENT_MANAGER.as_ref().unwrap() };
-    let count = COUNT.load(Ordering::Relaxed);
-    let view = counter_render(count);
-    let transaction = renderer.render(view, &mut *event_manager.lock().expect("failed to acquire event_manager lock"));
-    patcher.patch(&transaction);
+struct Counter;
+
+#[inline]
+fn on_add_count(updater: &Updater, _: &mut Event) {
+    updater.update(|current| {
+        let mut next = current.clone();
+
+        next.update("count", |count| {
+            if let Some(c) = count.number() {
+                *count = (c + 1.0).into();
+            }
+        });
+
+        next
+    });
 }
 
-fn enqueue_render() {
-    set_timeout(render, 0);
+#[inline]
+fn on_sub_count(updater: &Updater, _: &mut Event) {
+    updater.update(|current| {
+        let mut next = current.clone();
+
+        next.update("count", |count| {
+            if let Some(c) = count.number() {
+                *count = (c - 1.0).into();
+            }
+        });
+
+        next
+    });
 }
 
+impl Component for Counter {
+    #[inline]
+    fn name(&self) -> &'static str {
+        "Counter"
+    }
+    #[inline]
+    fn initial_state(&self, props: &Props) -> Props {
+        props! {
+            "count": props.take("count").unwrap_or(0.into())
+        }
+    }
+    #[inline]
+    fn render(&self, updater: &Updater, state: &Props, _: &Props, _: &Children) -> View {
+        let count = state.get("count");
+
+        let add_updater = updater.clone();
+        let sub_updater = updater.clone();
+
+        view! {
+            <div class="Counter">
+                <p>{format!("Count {}", count)}</p>
+                <{Button} onclick={ move |e: &mut Event| on_add_count(&add_updater, e) }>
+                    {"Add"}
+                </{Button}>
+                <{Button} onclick={ move |e: &mut Event| on_sub_count(&sub_updater, e) }>
+                    {"Sub"}
+                </{Button}>
+            </div>
+        }
+    }
+}
 
 fn main() {
     stdweb::initialize();
 
-    let event_manager = Arc::new(Mutex::new(EventManager::new()));
-    let patcher = Patcher::new(document().get_element_by_id("app").unwrap().into(), document(), event_manager.clone());
-    let renderer = Renderer::new();
+    let event_manager = EventManager::new();
+    let handler = Handler::new(document());
 
-    unsafe {
-        PATCHER = Some(patcher);
-        RENDERER = Some(renderer);
-        EVENT_MANAGER = Some(event_manager);
-    }
+    let mut patcher = Patcher::new(
+        document().get_element_by_id("app").unwrap().into(),
+        document(),
+        event_manager.clone(),
+    );
 
-    enqueue_render();
+    document().add_event_listener::<TransactionEvent, _>(move |e| {
+        patcher.patch(&e.transaction());
+    });
+
+    let _renderer = Renderer::new(
+        view! {
+            <{Counter} count=0/>
+        },
+        event_manager,
+        handler,
+    );
 
     stdweb::event_loop();
 }

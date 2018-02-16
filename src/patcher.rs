@@ -3,10 +3,9 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use fnv::FnvHashMap;
 use serde_json::{Map, Value};
 use stdweb::web::{Document, INode, Node};
-use virtual_view::{RawView, Transaction, EventManager, Patch, view_id, value_to_string};
+use view::{view_id, EventManager, Patch, RawView, Transaction};
 
-use super::{NodesIds, Events, ToHtmlString};
-
+use super::{Events, NodesIds, ToHtmlString};
 
 pub struct Patcher {
     root: Node,
@@ -17,7 +16,7 @@ pub struct Patcher {
 
 impl Patcher {
     #[inline(always)]
-    pub fn new(root: Node, document: Document, event_manager: Arc<Mutex<EventManager>>) -> Self {
+    pub fn new(root: Node, document: Document, event_manager: EventManager) -> Self {
         Patcher {
             root: root,
             document: document,
@@ -28,11 +27,15 @@ impl Patcher {
 
     #[inline]
     fn nodes_ids(&self) -> MutexGuard<NodesIds> {
-        self.nodes_ids.lock().expect("failed to acquire nodes_ids lock")
+        self.nodes_ids
+            .lock()
+            .expect("failed to acquire nodes_ids lock")
     }
     #[inline]
     fn nodes_ids_mut(&mut self) -> MutexGuard<NodesIds> {
-        self.nodes_ids.lock().expect("failed to acquire nodes_ids lock")
+        self.nodes_ids
+            .lock()
+            .expect("failed to acquire nodes_ids lock")
     }
 
     #[inline]
@@ -56,10 +59,14 @@ impl Patcher {
                 let node_option = self.nodes_ids().get_node(id).map(|x| x.clone());
 
                 if let Some(node) = node_option {
+                    let name = &name[2..];
+
                     if *value {
-                        self.events.listen(name, id, &node, &self.nodes_ids, &self.document);
+                        self.events
+                            .listen(name, id, &node, &self.nodes_ids, &self.document);
                     } else {
-                        self.events.unlisten(name, id, &node, &self.nodes_ids, &self.document);
+                        self.events
+                            .unlisten(name, id, &node, &self.nodes_ids, &self.document);
                     }
                 }
             }
@@ -72,23 +79,23 @@ impl Patcher {
             &Patch::Mount(ref view) => {
                 let new_node = self.create_node(id, view);
                 self.root.append_child(&new_node);
-            },
+            }
             &Patch::Insert(ref child_id, index, ref view) => {
                 let new_node = self.create_node(child_id, view);
                 let node = node.unwrap();
 
                 if let Some(next_node) = node.child_nodes().iter().nth(index + 1) {
                     node.insert_before(&new_node, &next_node);
-                }  else {
+                } else {
                     node.append_child(&new_node);
                 }
-            },
+            }
             &Patch::Replace(ref _prev_view, ref next_view) => {
                 let new_node = self.create_node(id, next_view);
                 let old_node = node.expect("node is not any tree");
                 let parent = old_node.parent_node().expect("node has no parent");
                 parent.replace_child(&new_node, old_node);
-            },
+            }
             &Patch::Order(ref order) => {
                 let parent_node = node.unwrap();
                 let child_nodes: Vec<_> = parent_node.child_nodes().iter().collect();
@@ -116,7 +123,7 @@ impl Patcher {
                         len += 1;
                     }
                 }
-            },
+            }
             &Patch::Props(ref prev_props, ref diff_props) => {
                 let node = node.unwrap();
 
@@ -126,14 +133,14 @@ impl Patcher {
                     } else if let &Value::Object(_) = value {
                         Self::set_props(node, key, value);
                     } else {
-                        let value = value_to_string(value);
+                        let value = value.to_string();
                         js! {
                             var node = @{node};
                             node.setAttribute(@{key}, @{value});
                         }
                     }
                 }
-            },
+            }
         }
     }
 
@@ -180,7 +187,7 @@ impl Patcher {
         if key == "attributes" {
             if let &Value::Object(ref map) = value {
                 for (attr_key, attr_value) in map {
-                    let value = value_to_string(attr_value);
+                    let value = attr_value.to_string();
                     js! {
                         var node = @{node},
                             attr_key = @{attr_key},
@@ -193,7 +200,7 @@ impl Patcher {
         } else if key == "style" {
             if let &Value::Object(ref map) = value {
                 for (attr_key, attr_value) in map {
-                    let value = value_to_string(attr_value);
+                    let value = attr_value.to_string();
                     js! {
                         var node = @{node},
                             attr_key = @{attr_key},
@@ -204,7 +211,7 @@ impl Patcher {
                 }
             }
         } else {
-            let value = value_to_string(value);
+            let value = value.to_string();
             js! {
                 var node = @{node},
                     key = @{key},
@@ -223,7 +230,7 @@ impl Patcher {
                 node.set_text_content(text);
                 self.nodes_ids_mut().insert(id.clone(), node.clone());
                 node
-            },
+            }
             &RawView::Data { .. } => {
                 let tmp = self.document.create_element("div");
 
@@ -242,7 +249,6 @@ impl Patcher {
 
     #[inline]
     fn set_child_nodes_id(&mut self, node: &Node, id: &String, view: &RawView) {
-
         self.nodes_ids_mut().insert(id.clone(), node.clone());
 
         match view {
@@ -255,8 +261,8 @@ impl Patcher {
                     self.set_child_nodes_id(&child_node, &child_id, child);
                     index += 1;
                 }
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 
@@ -275,8 +281,8 @@ impl Patcher {
                         self.remove_child_nodes_id(&child_id, child);
                         index += 1;
                     }
-                },
-                _ => {},
+                }
+                _ => {}
             }
         }
     }

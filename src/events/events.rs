@@ -5,21 +5,20 @@ use stdweb::web::{Document, Node};
 use stdweb::unstable::TryInto;
 use serde_json::{self, Map, Value};
 use fnv::FnvHashMap;
-use virtual_view::EventManager;
+use view::EventManager;
 
 use super::super::NodesIds;
 use super::DOMEvent;
 
-
 pub struct Events {
     listening: FnvHashMap<String, usize>,
     listening_handlers: FnvHashMap<String, FnvHashMap<String, Reference>>,
-    event_manager: Arc<Mutex<EventManager>>,
+    event_manager: EventManager,
 }
 
 impl Events {
     #[inline(always)]
-    pub fn new(event_manager: Arc<Mutex<EventManager>>) -> Self {
+    pub fn new(event_manager: EventManager) -> Self {
         Events {
             listening: FnvHashMap::default(),
             listening_handlers: FnvHashMap::default(),
@@ -34,13 +33,13 @@ impl Events {
         id: &str,
         node: &Node,
         nodes: &Arc<Mutex<NodesIds>>,
-        document: &Document
+        document: &Document,
     ) {
         if !self.listening.contains_key(name) {
             self.listening.insert(name.into(), 1);
             self.add_event_listener(name, id, node, nodes, document);
         } else {
-            self.listening.get_mut(name).map(|count| { *count += 1 });
+            self.listening.get_mut(name).map(|count| *count += 1);
         }
     }
     #[inline]
@@ -50,7 +49,7 @@ impl Events {
         id: &str,
         node: &Node,
         nodes: &Arc<Mutex<NodesIds>>,
-        document: &Document
+        document: &Document,
     ) {
         let count = if let Some(count) = self.listening.get_mut(name) {
             *count -= 1;
@@ -90,23 +89,24 @@ impl Events {
     }
 
     #[inline]
-    fn handle(
-        event_manager: &Arc<Mutex<EventManager>>,
-        nodes_ids: &Arc<Mutex<NodesIds>>,
-        event: Reference
-    ) {
+    fn handle(event_manager: &EventManager, nodes_ids: &Arc<Mutex<NodesIds>>, event: Reference) {
         let target: Node = js! {
             return @{event.as_ref()}.target;
-        }.try_into().unwrap();
+        }.try_into()
+            .unwrap();
 
-        if let Some(id) = nodes_ids.lock().expect("failed to acquire nodes_ids lock").get_id(&target) {
+        if let Some(id) = nodes_ids
+            .lock()
+            .expect("failed to acquire nodes_ids lock")
+            .get_id(&target)
+        {
             let name: String = js! {
-                return @{event.as_ref()}.type;
-            }.try_into().unwrap();
+                return "on" + @{event.as_ref()}.type;
+            }.try_into()
+                .unwrap();
 
             let mut event = DOMEvent::new(name, Self::event_to_json(&event));
-            event_manager.lock().expect("failed to acquire event_manager lock")
-                .dispatch(id, &mut event);
+            event_manager.dispatch(id, &mut event);
         }
     }
 
@@ -117,7 +117,7 @@ impl Events {
         id: &str,
         _node: &Node,
         nodes_ids: &Arc<Mutex<NodesIds>>,
-        document: &Document
+        document: &Document,
     ) {
         let event_manager = self.event_manager.clone();
         let nodes_ids = nodes_ids.clone();
@@ -129,12 +129,13 @@ impl Events {
 
             document.addEventListener(type, listener);
             return listener;
-        }.try_into().unwrap();
+        }.try_into()
+            .unwrap();
 
         self.listening_handlers
-            .entry(name.into()).or_insert(FnvHashMap::default())
+            .entry(name.into())
+            .or_insert(FnvHashMap::default())
             .insert(id.into(), listener_reference);
-
     }
     #[inline]
     fn remove_event_listener(
@@ -143,10 +144,11 @@ impl Events {
         id: &str,
         _node: &Node,
         _nodes_ids: &Arc<Mutex<NodesIds>>,
-        document: &Document
+        document: &Document,
     ) {
         let listener_reference = self.listening_handlers
-            .entry(name.into()).or_insert(FnvHashMap::default())
+            .entry(name.into())
+            .or_insert(FnvHashMap::default())
             .get(id);
 
         js! {

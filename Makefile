@@ -1,25 +1,16 @@
-
-
 all: examples
 
 counter:
-	cargo web build --example counter --target-webasm
+	cargo web build --example counter --target asmjs-unknown-emscripten
 	make copy_counter
 
-simple:
-	cargo web build --example simple --target-webasm
-	make copy_simple
-
-examples: counter simple
+examples: counter
 
 copy_counter:
-	cp target/wasm32-unknown-unknown/release/examples/counter.wasm examples
-
-copy_simple:
-	cp target/wasm32-unknown-unknown/release/examples/simple.wasm examples
+	cp target/asmjs-unknown-emscripten/debug/examples/counter.js examples
 
 clean:
-	rm examples/counter.wasm examples/simple.wasm
+	rm examples/counter.js
 
 
-.PHONY: all counter simple examples copy_counter copy_simple clean
+.PHONY: all counter examples copy_counter clean

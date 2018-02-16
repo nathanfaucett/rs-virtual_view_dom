@@ -1,6 +1,6 @@
 [package]
-name = "virtual_view_dom"
-version = "0.1.3"
+name = "view_dom"
+version = "0.1.0"
 authors = ["Nathan Faucett <nathanfaucett@gmail.com>"]
 
 keywords = ["virtual", "view", "dom", "web"]
@@ -9,17 +9,18 @@ categories = ["gui"]
 description = "a virtual view transaction renderer for the dom"
 license = "MIT"
 readme = "README.md"
-repository = "https://gitlab.com/nathanfaucett/rs-virtual_view_dom.git"
-homepage = "https://gitlab.com/nathanfaucett/rs-virtual_view_dom"
+repository = "https://gitlab.com/nathanfaucett/rs-view_dom.git"
+homepage = "https://gitlab.com/nathanfaucett/rs-view_dom"
 
 [lib]
-name = "virtual_view_dom"
+name = "view_dom"
 path = "src/lib.rs"
 
 [dependencies]
 fnv = "1.0"
 stdweb = "0.3"
+serde = "1.0"
 serde_json = "1.0"
-virtual_view = "0.1"
+view = { path = "../rs-view" }
 
 [dev-dependencies]

@@ -3,7 +3,6 @@ use std::hash::{Hash, Hasher};
 
 use stdweb::Reference;
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NodeRef(Reference);
 
