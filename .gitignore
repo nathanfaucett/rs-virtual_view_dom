@@ -1,3 +1,4 @@
 examples/*.wasm
+examples/*.js
 target/
 **/*.rs.bk
