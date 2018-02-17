@@ -1,7 +1,10 @@
 use std::sync::{Arc, Mutex, MutexGuard};
+use std::collections::HashMap;
 
 use fnv::FnvHashMap;
 use serde_json::{Map, Value};
+use stdweb;
+use stdweb::unstable::TryInto;
 use stdweb::web::{Document, INode, Node};
 use view::{view_id, EventManager, Patch, RawView, Transaction};
 
@@ -130,8 +133,8 @@ impl Patcher {
                 for (key, value) in diff_props {
                     if value.is_null() {
                         Self::remove_prop(node, key, prev_props);
-                    } else if let &Value::Object(_) = value {
-                        Self::set_props(node, key, value);
+                    } else if value.is_object() {
+                        Self::update_props(node, key, value);
                     } else {
                         let value = value.to_string();
                         js! {
@@ -183,35 +186,35 @@ impl Patcher {
         }
     }
     #[inline]
-    fn set_props(node: &Node, key: &String, value: &Value) {
+    fn update_props(node: &Node, key: &String, value: &Value) {
         if key == "attributes" {
             if let &Value::Object(ref map) = value {
                 for (attr_key, attr_value) in map {
-                    let value = attr_value.to_string();
+                    let attr_value = json_to_js_value(attr_value);
                     js! {
                         var node = @{node},
                             attr_key = @{attr_key},
-                            attr_value = @{value};
+                            attr_value = @{attr_value};
 
-                        node.addAttribute(attr_key, attr_value);
+                        node.setAttribute(attr_key, attr_value);
                     }
                 }
             }
         } else if key == "style" {
             if let &Value::Object(ref map) = value {
                 for (attr_key, attr_value) in map {
-                    let value = attr_value.to_string();
+                    let attr_value = json_to_js_value(attr_value);
                     js! {
                         var node = @{node},
                             attr_key = @{attr_key},
-                            attr_value = @{value};
+                            attr_value = @{attr_value};
 
                         node.style[attr_key] = attr_value;
                     }
                 }
             }
         } else {
-            let value = value.to_string();
+            let value = json_to_js_value(value);
             js! {
                 var node = @{node},
                     key = @{key},
@@ -284,6 +287,26 @@ impl Patcher {
                 }
                 _ => {}
             }
+        }
+    }
+}
+
+#[inline]
+fn json_to_js_value(value: &Value) -> stdweb::Value {
+    match value {
+        &Value::Null => stdweb::Value::Null,
+        &Value::Bool(ref v) => stdweb::Value::Bool(*v),
+        &Value::Number(ref v) => stdweb::Value::Number(v.as_f64().unwrap().try_into().unwrap()),
+        &Value::String(ref v) => stdweb::Value::String(v.clone()),
+        &Value::Array(ref a) => {
+            let array: Vec<_> = a.iter().map(json_to_js_value).collect();
+            stdweb::Value::Array(array.try_into().unwrap())
+        }
+        &Value::Object(ref o) => {
+            let object: HashMap<_, _> = o.iter()
+                .map(|(k, v)| (k.clone(), json_to_js_value(v)))
+                .collect();
+            stdweb::Value::Object(object.try_into().unwrap())
         }
     }
 }

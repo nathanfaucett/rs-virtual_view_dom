@@ -68,14 +68,16 @@ impl Component for Counter {
     }
     #[inline]
     fn render(&self, updater: &Updater, state: &Props, _: &Props, _: &Children) -> View {
-        let count = state.get("count");
+        let count = state.get("count").number().unwrap_or(0.0);
 
         let add_updater = updater.clone();
         let sub_updater = updater.clone();
 
         view! {
             <div class="Counter">
-                <p>{format!("Count {}", count)}</p>
+                <p style={{
+                    "color": if count >= 0.0 {"#000"} else {"#f00"},
+                }}>{format!("Count {}", count)}</p>
                 <{Button} onclick={ move |e: &mut Event| on_add_count(&add_updater, e) }>
                     {"Add"}
                 </{Button}>
