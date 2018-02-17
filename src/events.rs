@@ -5,10 +5,9 @@ use stdweb::web::{Document, Node};
 use stdweb::unstable::TryInto;
 use serde_json::{self, Map, Value};
 use fnv::FnvHashMap;
-use view::EventManager;
+use view::{EventManager, SimpleEvent};
 
-use super::super::NodesIds;
-use super::DOMEvent;
+use super::NodesIds;
 
 pub struct Events {
     listening: FnvHashMap<String, usize>,
@@ -105,7 +104,7 @@ impl Events {
             }.try_into()
                 .unwrap();
 
-            let mut event = DOMEvent::new(name, Self::event_to_json(&event));
+            let mut event = SimpleEvent::new(name, Self::event_to_json(&event));
             event_manager.dispatch(id, &mut event);
         }
     }
