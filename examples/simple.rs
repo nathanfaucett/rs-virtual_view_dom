@@ -5,7 +5,7 @@ extern crate view;
 extern crate view_dom;
 
 use stdweb::web::{document, IEventTarget};
-use view::{Children, Component, Event, EventManager, Instance, Props, Renderer, Updater, View};
+use view::{Children, Component, EventManager, Instance, Props, Renderer, Updater, View};
 use view_dom::{Handler, Patcher, TransactionEvent};
 
 struct App;
@@ -28,20 +28,13 @@ impl Component for App {
         }
     }
     fn render(&self, instance: &Instance, _: &Props, _: &Children) -> View {
-        let home_updater = instance.updater.clone();
-        let contact_updater = instance.updater.clone();
-
         view! {
             <div class="App">
                 <div>
-                    <button onclick={ move |_: &mut Event| {
-                        on_button_click(&home_updater, "home") }
-                    }>
+                    <button onclick={ instance.wrap(move |u, _| on_button_click(u, "home")) }>
                         {"Home"}
                     </button>
-                    <button onclick={ move |_: &mut Event| {
-                        on_button_click(&contact_updater, "contact") }
-                    }>
+                    <button onclick={ instance.wrap(move |u, _| on_button_click(u, "contact")) }>
                         {"Contact"}
                     </button>
                 </div>

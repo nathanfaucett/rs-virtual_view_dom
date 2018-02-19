@@ -25,34 +25,35 @@ impl Component for Button {
 
 struct Counter;
 
-#[inline]
-fn on_add_count(updater: &Updater, _: &mut Event) {
-    updater.set_state(|current| {
-        let mut next = current.clone();
+impl Counter {
+    #[inline]
+    fn on_add_count(updater: &Updater, _: &mut Event) {
+        updater.set_state(|current| {
+            let mut next = current.clone();
 
-        next.update("count", |count| {
-            if let Some(c) = count.number() {
-                *count = (c + 1.0).into();
-            }
+            next.update("count", |count| {
+                if let Some(c) = count.number() {
+                    *count = (c + 1.0).into();
+                }
+            });
+
+            next
         });
+    }
+    #[inline]
+    fn on_sub_count(updater: &Updater, _: &mut Event) {
+        updater.set_state(|current| {
+            let mut next = current.clone();
 
-        next
-    });
-}
+            next.update("count", |count| {
+                if let Some(c) = count.number() {
+                    *count = (c - 1.0).into();
+                }
+            });
 
-#[inline]
-fn on_sub_count(updater: &Updater, _: &mut Event) {
-    updater.set_state(|current| {
-        let mut next = current.clone();
-
-        next.update("count", |count| {
-            if let Some(c) = count.number() {
-                *count = (c - 1.0).into();
-            }
+            next
         });
-
-        next
-    });
+    }
 }
 
 impl Component for Counter {
@@ -70,18 +71,15 @@ impl Component for Counter {
     fn render(&self, instance: &Instance, _: &Props, _: &Children) -> View {
         let count = instance.state.get("count").number().unwrap_or(0.0);
 
-        let add_updater = instance.updater.clone();
-        let sub_updater = instance.updater.clone();
-
         view! {
             <div class="Counter">
                 <p style={{
                     "color": if count >= 0.0 {"#000"} else {"#f00"},
                 }}>{format!("Count {}", count)}</p>
-                <{Button} onclick={ move |e: &mut Event| on_add_count(&add_updater, e) }>
+                <{Button} onclick={ instance.wrap(Counter::on_add_count) }>
                     {"Add"}
                 </{Button}>
-                <{Button} onclick={ move |e: &mut Event| on_sub_count(&sub_updater, e) }>
+                <{Button} onclick={ instance.wrap(Counter::on_sub_count) }>
                     {"Sub"}
                 </{Button}>
             </div>
