@@ -5,13 +5,13 @@ extern crate view;
 extern crate view_dom;
 
 use stdweb::web::{document, IEventTarget};
-use view::{Children, Component, Event, EventManager, Props, Renderer, Updater, View};
+use view::{Children, Component, Event, EventManager, Instance, Props, Renderer, Updater, View};
 use view_dom::{Handler, Patcher, TransactionEvent};
 
 struct App;
 
 fn on_button_click(updater: &Updater, page: &'static str) {
-    updater.update(|prev| {
+    updater.set_state(move |prev| {
         let mut next = prev.clone();
         next.insert("page", page);
         next
@@ -27,9 +27,9 @@ impl Component for App {
             "page": "index"
         }
     }
-    fn render(&self, updater: &Updater, state: &Props, _: &Props, _: &Children) -> View {
-        let home_updater = updater.clone();
-        let contact_updater = updater.clone();
+    fn render(&self, instance: &Instance, _: &Props, _: &Children) -> View {
+        let home_updater = instance.updater.clone();
+        let contact_updater = instance.updater.clone();
 
         view! {
             <div class="App">
@@ -46,7 +46,7 @@ impl Component for App {
                     </button>
                 </div>
                 {
-                    match state.get("page").to_string().as_str() {
+                    match instance.state.get("page").to_string().as_str() {
                         "contact" => view! { <{Contact}/> },
                         _ => view! { <{Home}/> },
                     }
@@ -62,7 +62,7 @@ impl Component for Home {
     fn name(&self) -> &'static str {
         "Home"
     }
-    fn render(&self, _: &Updater, _: &Props, _: &Props, _: &Children) -> View {
+    fn render(&self, _: &Instance, _: &Props, _: &Children) -> View {
         view! {
             <div class="Home">
                 <h1>{"Home"}</h1>
@@ -78,7 +78,7 @@ impl Component for Contact {
     fn name(&self) -> &'static str {
         "Contact"
     }
-    fn render(&self, _: &Updater, _: &Props, _: &Props, _: &Children) -> View {
+    fn render(&self, _: &Instance, _: &Props, _: &Children) -> View {
         view! {
             <div class="Contact">
                 <h1>{"Contact"}</h1>

@@ -5,13 +5,13 @@ extern crate view;
 extern crate view_dom;
 
 use stdweb::web::{document, set_timeout, IEventTarget};
-use view::{Children, Component, EventManager, Props, Renderer, Updater, View};
+use view::{Children, Component, EventManager, Instance, Props, Renderer, Updater, View};
 use view_dom::{Handler, Patcher, TransactionEvent};
 
 struct App;
 
 fn app_update(updater: &Updater) {
-    updater.update(|prev| {
+    updater.set_state(|prev| {
         let mut next = prev.clone();
 
         let mut direction = next.get("direction").number().unwrap_or(1.0);
@@ -51,11 +51,12 @@ impl Component for App {
             "count": 1,
         }
     }
-    fn render(&self, updater: &Updater, state: &Props, _: &Props, _: &Children) -> View {
-        let count = state.get("count").number().unwrap_or(1.0) as isize;
-        let set_timeout_updater = updater.clone();
-
+    fn will_mount(&self, instance: &Instance) {
+        let set_timeout_updater = instance.updater.clone();
         set_timeout(move || app_update(&set_timeout_updater), 16);
+    }
+    fn render(&self, instance: &Instance, _: &Props, _: &Children) -> View {
+        let count = instance.state.get("count").number().unwrap_or(1.0) as isize;
 
         view! {
             <div class="App">

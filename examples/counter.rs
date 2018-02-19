@@ -5,7 +5,7 @@ extern crate view;
 extern crate view_dom;
 
 use stdweb::web::{document, IEventTarget};
-use view::{Children, Component, Event, EventManager, Props, Renderer, Updater, View};
+use view::{Children, Component, Event, EventManager, Instance, Props, Renderer, Updater, View};
 use view_dom::{Handler, Patcher, TransactionEvent};
 
 struct Button;
@@ -16,7 +16,7 @@ impl Component for Button {
         "Button"
     }
     #[inline]
-    fn render(&self, _: &Updater, _: &Props, props: &Props, children: &Children) -> View {
+    fn render(&self, _: &Instance, props: &Props, children: &Children) -> View {
         view! {
             <button class="Button" ... { props }>{ each children }</button>
         }
@@ -27,7 +27,7 @@ struct Counter;
 
 #[inline]
 fn on_add_count(updater: &Updater, _: &mut Event) {
-    updater.update(|current| {
+    updater.set_state(|current| {
         let mut next = current.clone();
 
         next.update("count", |count| {
@@ -42,7 +42,7 @@ fn on_add_count(updater: &Updater, _: &mut Event) {
 
 #[inline]
 fn on_sub_count(updater: &Updater, _: &mut Event) {
-    updater.update(|current| {
+    updater.set_state(|current| {
         let mut next = current.clone();
 
         next.update("count", |count| {
@@ -67,11 +67,11 @@ impl Component for Counter {
         }
     }
     #[inline]
-    fn render(&self, updater: &Updater, state: &Props, _: &Props, _: &Children) -> View {
-        let count = state.get("count").number().unwrap_or(0.0);
+    fn render(&self, instance: &Instance, _: &Props, _: &Children) -> View {
+        let count = instance.state.get("count").number().unwrap_or(0.0);
 
-        let add_updater = updater.clone();
-        let sub_updater = updater.clone();
+        let add_updater = instance.updater.clone();
+        let sub_updater = instance.updater.clone();
 
         view! {
             <div class="Counter">
