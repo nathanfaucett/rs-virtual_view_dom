@@ -1,5 +1,5 @@
 use serde_json::{Map, Value};
-use view::{RawView, View};
+use virtual_view::{RawView, View};
 
 pub trait ToHtmlString {
     fn to_html_string(&self) -> String;

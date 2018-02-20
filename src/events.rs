@@ -5,7 +5,7 @@ use stdweb::web::{Document, Node};
 use stdweb::unstable::TryInto;
 use serde_json::{self, Map, Value};
 use fnv::FnvHashMap;
-use view::{EventManager, SimpleEvent};
+use virtual_view::{EventManager, SimpleEvent};
 
 use super::NodesIds;
 

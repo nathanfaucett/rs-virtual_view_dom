@@ -6,7 +6,7 @@ use serde_json::{Map, Value};
 use stdweb;
 use stdweb::unstable::TryInto;
 use stdweb::web::{Document, INode, Node};
-use view::{view_id, EventManager, Patch, RawView, Transaction};
+use virtual_view::{view_id, EventManager, Patch, RawView, Transaction};
 
 use super::{Events, NodesIds, ToHtmlString};
 

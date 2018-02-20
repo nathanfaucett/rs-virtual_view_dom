@@ -1,4 +1,4 @@
-use view::{self, Transaction};
+use virtual_view::{self, Transaction};
 use stdweb::{Reference, Value};
 use stdweb::unstable::{TryFrom, TryInto};
 use stdweb::serde::ConversionError;
@@ -67,7 +67,7 @@ impl Handler {
     }
 }
 
-impl view::Handler for Handler {
+impl virtual_view::Handler for Handler {
     #[inline]
     fn handle(&self, transaction: Transaction) {
         self.document

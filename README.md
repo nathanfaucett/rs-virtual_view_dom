@@ -1,9 +1,9 @@
-view_dom
+virtual_view_dom
 =====
 
 a virtual view transaction renderer for the dom
 
-# Build Examples
+### Build Examples
 ```bash
 $ cargo install -f cargo-web
 ```
@@ -11,26 +11,23 @@ $ cargo install -f cargo-web
 $ make
 ```
 
+### Counter Example
+
 ```rust
 extern crate serde_json;
 extern crate stdweb;
 #[macro_use]
-extern crate view;
-extern crate view_dom;
+extern crate virtual_view;
+extern crate virtual_view_dom;
 
 use stdweb::web::{document, IEventTarget};
-use view::{Children, Component, Event, EventManager, Props, Renderer, Updater, View};
-use view_dom::{Handler, Patcher, TransactionEvent};
+use virtual_view::{Children, Component, Event, Instance, EventManager, Props, Renderer, Updater, View};
+use virtual_view_dom::{Handler, Patcher, TransactionEvent};
 
 struct Button;
 
 impl Component for Button {
-    #[inline]
-    fn name(&self) -> &'static str {
-        "Button"
-    }
-    #[inline]
-    fn render(&self, _: &Updater, _: &Props, props: &Props, children: &Children) -> View {
+    fn render(&self, _: &Instance, props: &Props, children: &Children) -> View {
         view! {
             <button class="Button" ... { props }>{ each children }</button>
         }
@@ -39,40 +36,39 @@ impl Component for Button {
 
 struct Counter;
 
-#[inline]
-fn on_add_count(updater: &Updater, _: &mut Event) {
-    updater.update(|current| {
-        let mut next = current.clone();
+impl Counter {
+    fn on_add_count(updater: &Updater, _: &mut Event) {
+        updater.update(|current| {
+            let mut next = current.clone();
 
-        next.update("count", |count| {
-            if let Some(c) = count.number() {
-                *count = (c + 1.0).into();
-            }
+            next.update("count", |count| {
+                if let Some(c) = count.number() {
+                    *count = (c + 1.0).into();
+                }
+            });
+
+            next
         });
+    }
+    fn on_sub_count(updater: &Updater, _: &mut Event) {
+        updater.update(|current| {
+            let mut next = current.clone();
 
-        next
-    });
+            next.update("count", |count| {
+                if let Some(c) = count.number() {
+                    *count = (c - 1.0).into();
+                }
+            });
+
+            next
+        });
+    }
 }
 
-#[inline]
-fn on_sub_count(updater: &Updater, _: &mut Event) {
-    updater.update(|current| {
-        let mut next = current.clone();
-
-        next.update("count", |count| {
-            if let Some(c) = count.number() {
-                *count = (c - 1.0).into();
-            }
-        });
-
-        next
-    });
-}
-
-impl Component for Counter {
+impl Component for App {
     #[inline]
     fn name(&self) -> &'static str {
-        "Counter"
+        "App"
     }
     #[inline]
     fn initial_state(&self, props: &Props) -> Props {
@@ -81,19 +77,16 @@ impl Component for Counter {
         }
     }
     #[inline]
-    fn render(&self, updater: &Updater, state: &Props, _: &Props, _: &Children) -> View {
-        let count = state.get("count");
-
-        let add_updater = updater.clone();
-        let sub_updater = updater.clone();
+    fn render(&self, instance: &Instance, _: &Props, _: &Children) -> View {
+        let count = instance.state.get("count");
 
         view! {
             <div class="Counter">
                 <p>{format!("Count {}", count)}</p>
-                <{Button} onclick={ move |e: &mut Event| on_add_count(&add_updater, e) }>
+                <{Button} onclick={ instance.wrap(App::on_add_count) }>
                     {"Add"}
                 </{Button}>
-                <{Button} onclick={ move |e: &mut Event| on_sub_count(&sub_updater, e) }>
+                <{Button} onclick={ instance.wrap(App::on_sub_count) }>
                     {"Sub"}
                 </{Button}>
             </div>

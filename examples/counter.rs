@@ -1,21 +1,17 @@
 extern crate serde_json;
 extern crate stdweb;
 #[macro_use]
-extern crate view;
-extern crate view_dom;
+extern crate virtual_view;
+extern crate virtual_view_dom;
 
 use stdweb::web::{document, IEventTarget};
-use view::{Children, Component, Event, EventManager, Instance, Props, Renderer, Updater, View};
-use view_dom::{Handler, Patcher, TransactionEvent};
+use virtual_view::{Children, Component, Event, EventManager, Instance, Props, Renderer, Updater,
+                   View};
+use virtual_view_dom::{Handler, Patcher, TransactionEvent};
 
 struct Button;
 
 impl Component for Button {
-    #[inline]
-    fn name(&self) -> &'static str {
-        "Button"
-    }
-    #[inline]
     fn render(&self, _: &Instance, props: &Props, children: &Children) -> View {
         view! {
             <button class="Button" ... { props }>{ each children }</button>
@@ -26,7 +22,6 @@ impl Component for Button {
 struct Counter;
 
 impl Counter {
-    #[inline]
     fn on_add_count(updater: &Updater, _: &mut Event) {
         updater.set_state(|current| {
             let mut next = current.clone();
@@ -40,7 +35,6 @@ impl Counter {
             next
         });
     }
-    #[inline]
     fn on_sub_count(updater: &Updater, _: &mut Event) {
         updater.set_state(|current| {
             let mut next = current.clone();
@@ -57,17 +51,14 @@ impl Counter {
 }
 
 impl Component for Counter {
-    #[inline]
     fn name(&self) -> &'static str {
         "Counter"
     }
-    #[inline]
     fn initial_state(&self, props: &Props) -> Props {
         props! {
             "count": props.take("count").unwrap_or(0.into())
         }
     }
-    #[inline]
     fn render(&self, instance: &Instance, _: &Props, _: &Children) -> View {
         let count = instance.state.get("count").number().unwrap_or(0.0);
 

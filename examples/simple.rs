@@ -1,12 +1,12 @@
 extern crate serde_json;
 extern crate stdweb;
 #[macro_use]
-extern crate view;
-extern crate view_dom;
+extern crate virtual_view;
+extern crate virtual_view_dom;
 
 use stdweb::web::{document, IEventTarget};
-use view::{Children, Component, EventManager, Instance, Props, Renderer, Updater, View};
-use view_dom::{Handler, Patcher, TransactionEvent};
+use virtual_view::{Children, Component, EventManager, Instance, Props, Renderer, Updater, View};
+use virtual_view_dom::{Handler, Patcher, TransactionEvent};
 
 struct App;
 

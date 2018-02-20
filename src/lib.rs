@@ -7,7 +7,7 @@ extern crate serde_json;
 #[macro_use]
 extern crate stdweb;
 #[cfg_attr(test, macro_use)]
-extern crate view;
+extern crate virtual_view;
 
 mod utils;
 mod events;
