@@ -1,32 +1,35 @@
 all: examples
 
 children:
-	cargo web build --example children --target asmjs-unknown-emscripten
+	cargo web build --example children --target wasm32-unknown-emscripten
 	make copy_children
 
 counter:
-	cargo web build --example counter --target asmjs-unknown-emscripten
+	cargo web build --example counter --target wasm32-unknown-emscripten
 	make copy_counter
 
 simple:
-	cargo web build --example simple --target asmjs-unknown-emscripten
+	cargo web build --example simple --target wasm32-unknown-emscripten
 	make copy_simple
 
 examples: children counter simple
 
 copy_children:
-	cp target/asmjs-unknown-emscripten/debug/examples/children.js examples
+	cp target/wasm32-unknown-emscripten/debug/examples/children.js examples
+	find target/wasm32-unknown-emscripten/debug/examples/children-*.wasm -exec cp {} examples \;
 
 copy_counter:
-	cp target/asmjs-unknown-emscripten/debug/examples/counter.js examples
+	cp target/wasm32-unknown-emscripten/debug/examples/counter.js examples
+	find target/wasm32-unknown-emscripten/debug/examples/counter-*.wasm -exec cp {} examples \;
 
 copy_simple:
-	cp target/asmjs-unknown-emscripten/debug/examples/simple.js examples
+	cp target/wasm32-unknown-emscripten/debug/examples/simple.js examples
+	find target/wasm32-unknown-emscripten/debug/examples/simple-*.wasm -exec cp {} examples \;
 
 clean:
-	rm examples/children.js
-	rm examples/counter.js
-	rm examples/simple.js
+	cargo clean
+	rm examples/*.js
+	rm examples/*.wasm
 
 
 .PHONY: all children counter simple examples copy_children copy_counter copy_simple clean
