@@ -97,7 +97,7 @@ impl Events {
         if let Some(id) = nodes_ids
             .lock()
             .expect("failed to acquire nodes_ids lock")
-            .get_id(&target)
+            .id(&target)
         {
             let name: String = js! {
                 return "on" + @{event.as_ref()}.type;

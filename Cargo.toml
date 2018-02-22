@@ -1,6 +1,6 @@
 [package]
 name = "virtual_view_dom"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Nathan Faucett <nathanfaucett@gmail.com>"]
 
 keywords = ["virtual", "view", "dom", "web"]
@@ -21,6 +21,6 @@ fnv = "1.0"
 stdweb = "0.3"
 serde = "1.0"
 serde_json = "1.0"
-virtual_view = "0.2"
+virtual_view = { path = "../rs-virtual_view" } #"0.2"
 
 [dev-dependencies]

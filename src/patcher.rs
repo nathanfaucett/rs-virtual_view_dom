@@ -29,7 +29,16 @@ impl Patcher {
     }
 
     #[inline]
-    fn nodes_ids(&self) -> MutexGuard<NodesIds> {
+    pub fn node(&self, id: &str) -> Option<Node> {
+        self.nodes_ids_ref().node(id).map(Clone::clone)
+    }
+    #[inline]
+    pub fn id(&self, node: &Node) -> Option<String> {
+        self.nodes_ids_ref().id(node).map(Clone::clone)
+    }
+
+    #[inline]
+    fn nodes_ids_ref(&self) -> MutexGuard<NodesIds> {
         self.nodes_ids
             .lock()
             .expect("failed to acquire nodes_ids lock")
@@ -44,14 +53,14 @@ impl Patcher {
     #[inline]
     pub fn patch(&mut self, transaction: &Transaction) {
         for (id, patches) in transaction.patches() {
-            let node = self.nodes_ids().get_node(id).map(|n| n.clone());
+            let node = self.nodes_ids_ref().node(id).map(|n| n.clone());
 
             for patch in patches {
                 self.apply_patch(id, node.as_ref(), patch);
             }
         }
         for (id, view) in transaction.removes() {
-            if let Some(node) = self.nodes_ids().get_node(id) {
+            if let Some(node) = self.nodes_ids_ref().node(id) {
                 let parent = node.parent_node().expect("node has no parent");
                 let _ = parent.remove_child(node);
             }
@@ -59,7 +68,7 @@ impl Patcher {
         }
         for (id, events) in transaction.events() {
             for (name, value) in events {
-                let node_option = self.nodes_ids().get_node(id).map(|x| x.clone());
+                let node_option = self.nodes_ids_ref().node(id).map(|x| x.clone());
 
                 if let Some(node) = node_option {
                     let name = &name[2..];

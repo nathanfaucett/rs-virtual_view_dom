@@ -50,11 +50,11 @@ impl NodesIds {
     }
 
     #[inline]
-    pub fn get_node(&self, id: &str) -> Option<&Node> {
+    pub fn node(&self, id: &str) -> Option<&Node> {
         self.nodes.get(id)
     }
     #[inline]
-    pub fn get_id(&self, node: &Node) -> Option<&String> {
+    pub fn id(&self, node: &Node) -> Option<&String> {
         let node_ref: NodeRef = node.as_ref().into();
         self.ids.get(&node_ref)
     }

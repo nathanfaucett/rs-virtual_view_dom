@@ -28,8 +28,8 @@ copy_simple:
 
 clean:
 	cargo clean
-	rm examples/*.js
-	rm examples/*.wasm
+	find examples/*.js -exec rm {} \;
+	find examples/*.wasm -exec rm {} \;
 
 
 .PHONY: all children counter simple examples copy_children copy_counter copy_simple clean
