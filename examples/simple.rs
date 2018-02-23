@@ -15,7 +15,7 @@ use virtual_view_dom::{Handler, Patcher, TransactionEvent};
 struct App;
 
 impl App {
-    fn add_todo(updater: &Updater, _: &mut Event) {
+    fn add_todo(updater: &Updater) {
         updater.set_state(|prev| {
             let mut next = prev.clone();
             let next_id = prev.get("next_id").number().unwrap();
@@ -48,7 +48,9 @@ impl App {
             });
         }
     }
-    fn remove_todo(updater: &Updater, id: Prop) {
+    fn remove_todo(updater: &Updater, id: &Prop) {
+        let id = id.clone();
+
         updater.set_state(move |prev| {
             let mut next = prev.clone();
 
@@ -82,15 +84,18 @@ impl Component for App {
                 <input
                     type="text"
                     value={ instance.state.get("text") }
-                    oninput={ instance.wrap(App::text_change) }
+                    oninput={ event {
+                        let updater = instance.updater.clone();
+                        move |e: &mut Event| App::text_change(&updater, e)
+                    } }
                 />
-                <{AddTodo} add_todo={ instance.wrap(App::add_todo) }/>
+                <{AddTodo} add_todo={ event {
+                    let updater = instance.updater.clone();
+                    move |_: &mut Event| App::add_todo(&updater)
+                } } />
                 <{VisibleTodoList}
                     todos={ instance.state.get("todos") }
-                    remove_todo={ closure {
-                        let updater = instance.updater.clone();
-                        move |id: Prop| App::remove_todo(&updater, id)
-                    } }
+                    app_updater={ instance.updater.clone() }
                 />
                 <{Footer}/>
             </div>
@@ -116,7 +121,7 @@ impl Component for VisibleTodoList {
     fn render(&self, _: &Instance, props: &Props, _: &Children) -> View {
         view! {
             <div class="VisibleTodoList">
-                <{TodoList} todos={ props.get("todos") } remove_todo={ props.get("remove_todo") }/>
+                <{TodoList} todos={ props.get("todos") } app_updater={ props.get("app_updater") }/>
             </div>
         }
     }
@@ -128,13 +133,13 @@ impl Component for Todo {
     fn render(&self, _: &Instance, props: &Props, _: &Children) -> View {
         let id = props.take("id").unwrap();
         let completed = props.get("completed").boolean().unwrap_or(false);
-        let remove_todo = props.take("remove_todo").unwrap();
+        let app_updater = props.take("app_updater").unwrap();
 
         view! {
             <li class="Todo"
                 style={{ "text-decoration": if completed {"line-through"} else {"none"} }}
                 onclick={ move |_: &mut Event| {
-                    remove_todo.call::<(Prop,), ()>((id.clone(),)).unwrap();
+                    App::remove_todo(app_updater.updater().unwrap(), &id);
                 } }
             >
                 {props.get("text")}
@@ -157,7 +162,7 @@ impl Component for TodoList {
                     let id = todo.get("id");
 
                     view! {
-                        <{Todo} key={id} ...{todo} remove_todo={ props.get("remove_todo") }/>
+                        <{Todo} key={id} ...{todo} app_updater={ props.get("app_updater") }/>
                     }
                 }) }
             </ul>

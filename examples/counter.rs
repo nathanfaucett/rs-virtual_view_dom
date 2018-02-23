@@ -22,7 +22,7 @@ impl Component for Button {
 struct Counter;
 
 impl Counter {
-    fn on_add_count(updater: &Updater, _: &mut Event) {
+    fn on_add_count(updater: &Updater) {
         updater.set_state(|current| {
             let mut next = current.clone();
 
@@ -35,7 +35,7 @@ impl Counter {
             next
         });
     }
-    fn on_sub_count(updater: &Updater, _: &mut Event) {
+    fn on_sub_count(updater: &Updater) {
         updater.set_state(|current| {
             let mut next = current.clone();
 
@@ -67,10 +67,16 @@ impl Component for Counter {
                 <p style={{
                     "color": if count >= 0.0 {"#000"} else {"#f00"},
                 }}>{format!("Count {}", count)}</p>
-                <{Button} onclick={ instance.wrap(Counter::on_add_count) }>
+                <{Button} onclick={ event {
+                    let updater = instance.updater.clone();
+                    move |_: &mut Event| Counter::on_add_count(&updater)
+                } }>
                     {"Add"}
                 </{Button}>
-                <{Button} onclick={ instance.wrap(Counter::on_sub_count) }>
+                <{Button} onclick={ event {
+                    let updater = instance.updater.clone();
+                    move |_: &mut Event| Counter::on_sub_count(&updater)
+                } }>
                     {"Sub"}
                 </{Button}>
             </div>
