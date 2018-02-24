@@ -18,7 +18,7 @@ path = "src/lib.rs"
 
 [dependencies]
 fnv = "1.0"
-stdweb = "0.3"
+stdweb = "0.4"
 serde = "1.0"
 serde_json = "1.0"
 virtual_view = { path = "../rs-virtual_view" } #"0.2"

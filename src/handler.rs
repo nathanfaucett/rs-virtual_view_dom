@@ -1,6 +1,6 @@
 use virtual_view::{self, Transaction};
-use stdweb::{Reference, Value};
-use stdweb::unstable::{TryFrom, TryInto};
+use stdweb::{InstanceOf, Reference, ReferenceType, Value};
+use stdweb::unstable::{TryFrom, TryInto, Void};
 use stdweb::serde::ConversionError;
 use stdweb::web::{Document, IEventTarget};
 use stdweb::web::event::{ConcreteEvent, IEvent};
@@ -9,10 +9,33 @@ use serde_json::{from_str, to_value};
 
 pub struct TransactionEvent(Reference);
 
+impl InstanceOf for TransactionEvent {
+    #[inline]
+    fn instance_of(_: &Reference) -> bool {
+        false
+    }
+}
+
+impl ReferenceType for TransactionEvent {
+    #[inline]
+    unsafe fn from_reference_unchecked(reference: Reference) -> Self {
+        TransactionEvent(reference)
+    }
+}
+
 impl AsRef<Reference> for TransactionEvent {
     #[inline]
     fn as_ref(&self) -> &Reference {
         &self.0
+    }
+}
+
+impl TryFrom<Reference> for TransactionEvent {
+    type Error = Void;
+
+    #[inline]
+    fn try_from(reference: Reference) -> Result<Self, Self::Error> {
+        Ok(TransactionEvent(reference))
     }
 }
 
@@ -70,7 +93,7 @@ impl Handler {
 impl virtual_view::Handler for Handler {
     #[inline]
     fn handle(&self, transaction: Transaction) {
-        self.document
+        let _ = self.document
             .dispatch_event::<TransactionEvent>(&TransactionEvent::new(transaction));
     }
 }

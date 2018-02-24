@@ -4,7 +4,7 @@ extern crate stdweb;
 extern crate virtual_view;
 extern crate virtual_view_dom;
 
-use stdweb::web::{document, set_timeout, IEventTarget};
+use stdweb::web::{document, set_timeout, IEventTarget, INonElementParentNode};
 use virtual_view::{Children, Component, EventManager, Instance, Props, Renderer, Updater, View};
 use virtual_view_dom::{Handler, Patcher, TransactionEvent};
 

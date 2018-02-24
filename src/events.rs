@@ -1,11 +1,11 @@
 use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
 
-use stdweb::Reference;
+use stdweb::{Reference, Value};
 use stdweb::web::{Document, Node};
 use stdweb::unstable::TryInto;
-use serde_json::{self, Map, Value};
 use fnv::FnvHashMap;
-use virtual_view::{EventManager, SimpleEvent};
+use virtual_view::{EventManager, Prop, Props};
 
 use super::NodesIds;
 
@@ -63,8 +63,21 @@ impl Events {
     }
 
     #[inline]
-    fn event_to_json(event: &Reference) -> Map<String, Value> {
-        let object = js! {
+    fn value_to_prop(value: Value) -> Option<Prop> {
+        match value {
+            Value::Undefined => None,
+            Value::Null => None,
+            Value::Bool(v) => Some(Prop::Boolean(v)),
+            Value::Number(v) => Some(Prop::Number(v.try_into().unwrap())),
+            Value::Symbol(_) => None,
+            Value::String(v) => Some(Prop::String(v)),
+            Value::Reference(_) => None,
+        }
+    }
+
+    #[inline]
+    fn event_to_props(event: &Reference) -> Props {
+        let map: HashMap<String, Value> = js! {
             var event = @{event.as_ref()},
                 map = {},
                 key, value, type;
@@ -79,12 +92,15 @@ impl Events {
             }
 
             return map;
-        };
+        }.try_into()
+            .unwrap();
 
-        match serde_json::to_value(object).unwrap() {
-            Value::Object(json) => json,
-            _ => unreachable!(),
-        }
+        map.into_iter()
+            .filter_map(|(k, v)| match Self::value_to_prop(v) {
+                Some(v) => Some((k, v)),
+                None => None,
+            })
+            .collect()
     }
 
     #[inline]
@@ -104,7 +120,8 @@ impl Events {
             }.try_into()
                 .unwrap();
 
-            let mut event = SimpleEvent::new(name, Self::event_to_json(&event));
+            let mut event = Self::event_to_props(&event);
+            event.set("name", name);
             event_manager.dispatch(id, &mut event);
         }
     }

@@ -4,8 +4,8 @@ extern crate stdweb;
 extern crate virtual_view;
 extern crate virtual_view_dom;
 
-use stdweb::web::{document, IEventTarget};
-use virtual_view::{Children, Component, Event, EventManager, Instance, Props, Renderer, Updater,
+use stdweb::web::{document, IEventTarget, INonElementParentNode};
+use virtual_view::{Children, Component, EventManager, Instance, Prop, Props, Renderer, Updater,
                    View};
 use virtual_view_dom::{Handler, Patcher, TransactionEvent};
 
@@ -22,7 +22,7 @@ impl Component for Button {
 struct Counter;
 
 impl Counter {
-    fn on_add_count(updater: &Updater) {
+    fn on_add_count(updater: &Updater) -> Prop {
         updater.set_state(|current| {
             let mut next = current.clone();
 
@@ -34,8 +34,9 @@ impl Counter {
 
             next
         });
+        Prop::Null
     }
-    fn on_sub_count(updater: &Updater) {
+    fn on_sub_count(updater: &Updater) -> Prop {
         updater.set_state(|current| {
             let mut next = current.clone();
 
@@ -47,6 +48,7 @@ impl Counter {
 
             next
         });
+        Prop::Null
     }
 }
 
@@ -69,13 +71,13 @@ impl Component for Counter {
                 }}>{format!("Count {}", count)}</p>
                 <{Button} onclick={ event {
                     let updater = instance.updater.clone();
-                    move |_: &mut Event| Counter::on_add_count(&updater)
+                    move |_: &mut Props| Counter::on_add_count(&updater)
                 } }>
                     {"Add"}
                 </{Button}>
                 <{Button} onclick={ event {
                     let updater = instance.updater.clone();
-                    move |_: &mut Event| Counter::on_sub_count(&updater)
+                    move |_: &mut Props| Counter::on_sub_count(&updater)
                 } }>
                     {"Sub"}
                 </{Button}>

@@ -97,7 +97,7 @@ impl Patcher {
                 let node = node.unwrap();
 
                 if let Some(next_node) = node.child_nodes().iter().nth(index + 1) {
-                    node.insert_before(&new_node, &next_node);
+                    let _ = node.insert_before(&new_node, &next_node);
                 } else {
                     node.append_child(&new_node);
                 }
@@ -106,7 +106,7 @@ impl Patcher {
                 let new_node = self.create_node(id, next_view);
                 let old_node = node.expect("node is not in tree");
                 let parent = old_node.parent_node().expect("node has no parent");
-                parent.replace_child(&new_node, old_node);
+                let _ = parent.replace_child(&new_node, old_node);
             }
             &Patch::Order(ref order) => {
                 let parent_node = node.unwrap();
@@ -130,7 +130,7 @@ impl Patcher {
                         if index >= len {
                             parent_node.append_child(node);
                         } else {
-                            parent_node.insert_before(node, &child_nodes[index]);
+                            let _ = parent_node.insert_before(node, &child_nodes[index]);
                         }
                         len += 1;
                     }
@@ -238,13 +238,13 @@ impl Patcher {
     fn create_node(&mut self, id: &String, view: &RawView) -> Node {
         match view {
             &RawView::Text(ref text) => {
-                let node: Node = self.document.create_element("span").into();
+                let node: Node = self.document.create_element("span").unwrap().into();
                 node.set_text_content(text);
                 self.nodes_ids_mut().insert(id.clone(), node.clone());
                 node
             }
             &RawView::Data { .. } => {
-                let tmp = self.document.create_element("div");
+                let tmp = self.document.create_element("div").unwrap();
 
                 let result = js!{
                     var tmp = @{tmp};
@@ -309,13 +309,13 @@ fn json_to_js_value(value: &Value) -> stdweb::Value {
         &Value::String(ref v) => stdweb::Value::String(v.clone()),
         &Value::Array(ref a) => {
             let array: Vec<_> = a.iter().map(json_to_js_value).collect();
-            stdweb::Value::Array(array.try_into().unwrap())
+            array.try_into().unwrap()
         }
         &Value::Object(ref o) => {
             let object: HashMap<_, _> = o.iter()
                 .map(|(k, v)| (k.clone(), json_to_js_value(v)))
                 .collect();
-            stdweb::Value::Object(object.try_into().unwrap())
+            object.try_into().unwrap()
         }
     }
 }
