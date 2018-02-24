@@ -69,13 +69,13 @@ impl Component for Counter {
                 <p style={{
                     "color": if count >= 0.0 {"#000"} else {"#f00"},
                 }}>{format!("Count {}", count)}</p>
-                <{Button} onclick={ event {
+                <{Button} onclick={ block {
                     let updater = instance.updater.clone();
                     move |_: &mut Props| Counter::on_add_count(&updater)
                 } }>
                     {"Add"}
                 </{Button}>
-                <{Button} onclick={ event {
+                <{Button} onclick={ block {
                     let updater = instance.updater.clone();
                     move |_: &mut Props| Counter::on_sub_count(&updater)
                 } }>

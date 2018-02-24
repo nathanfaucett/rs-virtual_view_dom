@@ -20,8 +20,9 @@ extern crate stdweb;
 extern crate virtual_view;
 extern crate virtual_view_dom;
 
-use stdweb::web::{document, IEventTarget};
-use virtual_view::{Children, Component, Event, Instance, EventManager, Props, Renderer, Updater, View};
+use stdweb::web::{document, IEventTarget, INonElementParentNode};
+use virtual_view::{Children, Component, EventManager, Instance, Prop, Props, Renderer, Updater,
+                   View};
 use virtual_view_dom::{Handler, Patcher, TransactionEvent};
 
 struct Button;
@@ -37,8 +38,8 @@ impl Component for Button {
 struct Counter;
 
 impl Counter {
-    fn on_add_count(updater: &Updater, _: &mut Event) {
-        updater.update(|current| {
+    fn on_add_count(updater: &Updater) -> Prop {
+        updater.set_state(|current| {
             let mut next = current.clone();
 
             next.update("count", |count| {
@@ -49,9 +50,10 @@ impl Counter {
 
             next
         });
+        Prop::Null
     }
-    fn on_sub_count(updater: &Updater, _: &mut Event) {
-        updater.update(|current| {
+    fn on_sub_count(updater: &Updater) -> Prop {
+        updater.set_state(|current| {
             let mut next = current.clone();
 
             next.update("count", |count| {
@@ -62,31 +64,37 @@ impl Counter {
 
             next
         });
+        Prop::Null
     }
 }
 
-impl Component for App {
-    #[inline]
+impl Component for Counter {
     fn name(&self) -> &'static str {
-        "App"
+        "Counter"
     }
-    #[inline]
     fn initial_state(&self, props: &Props) -> Props {
         props! {
             "count": props.take("count").unwrap_or(0.into())
         }
     }
-    #[inline]
     fn render(&self, instance: &Instance, _: &Props, _: &Children) -> View {
-        let count = instance.state.get("count");
+        let count = instance.state.get("count").number().unwrap_or(0.0);
 
         view! {
             <div class="Counter">
-                <p>{format!("Count {}", count)}</p>
-                <{Button} onclick={ instance.wrap(App::on_add_count) }>
+                <p style={{
+                    "color": if count >= 0.0 {"#000"} else {"#f00"},
+                }}>{format!("Count {}", count)}</p>
+                <{Button} onclick={ block {
+                    let updater = instance.updater.clone();
+                    move |_: &mut Props| Counter::on_add_count(&updater)
+                } }>
                     {"Add"}
                 </{Button}>
-                <{Button} onclick={ instance.wrap(App::on_sub_count) }>
+                <{Button} onclick={ block {
+                    let updater = instance.updater.clone();
+                    move |_: &mut Props| Counter::on_sub_count(&updater)
+                } }>
                     {"Sub"}
                 </{Button}>
             </div>

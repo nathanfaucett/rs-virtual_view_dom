@@ -1,13 +1,12 @@
 use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
 
-use stdweb::{Reference, Value};
+use stdweb::Reference;
 use stdweb::web::{Document, Node};
 use stdweb::unstable::TryInto;
 use fnv::FnvHashMap;
-use virtual_view::{EventManager, Prop, Props};
+use virtual_view::{EventManager, Props};
 
-use super::NodesIds;
+use super::{js_value_to_prop, NodesIds};
 
 pub struct Events {
     listening: FnvHashMap<String, usize>,
@@ -63,47 +62,6 @@ impl Events {
     }
 
     #[inline]
-    fn value_to_prop(value: Value) -> Option<Prop> {
-        match value {
-            Value::Undefined => None,
-            Value::Null => None,
-            Value::Bool(v) => Some(Prop::Boolean(v)),
-            Value::Number(v) => Some(Prop::Number(v.try_into().unwrap())),
-            Value::Symbol(_) => None,
-            Value::String(v) => Some(Prop::String(v)),
-            Value::Reference(_) => None,
-        }
-    }
-
-    #[inline]
-    fn event_to_props(event: &Reference) -> Props {
-        let map: HashMap<String, Value> = js! {
-            var event = @{event.as_ref()},
-                map = {},
-                key, value, type;
-
-            for (key in event) {
-                value = event[key];
-                type = typeof(value);
-
-                if (value != null && type !== "function") {
-                    map[key] = value;
-                }
-            }
-
-            return map;
-        }.try_into()
-            .unwrap();
-
-        map.into_iter()
-            .filter_map(|(k, v)| match Self::value_to_prop(v) {
-                Some(v) => Some((k, v)),
-                None => None,
-            })
-            .collect()
-    }
-
-    #[inline]
     fn handle(event_manager: &EventManager, nodes_ids: &Arc<Mutex<NodesIds>>, event: Reference) {
         let target: Node = js! {
             return @{event.as_ref()}.target;
@@ -120,9 +78,10 @@ impl Events {
             }.try_into()
                 .unwrap();
 
-            let mut event = Self::event_to_props(&event);
-            event.set("name", name);
-            event_manager.dispatch(id, &mut event);
+            let mut props = Props::new();
+            props.set("name", name);
+            props.set("event", js_value_to_prop(event.try_into().unwrap()));
+            event_manager.dispatch(id, &mut props);
         }
     }
 

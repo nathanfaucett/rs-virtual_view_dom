@@ -11,8 +11,13 @@ pub struct TransactionEvent(Reference);
 
 impl InstanceOf for TransactionEvent {
     #[inline]
-    fn instance_of(_: &Reference) -> bool {
-        false
+    fn instance_of(reference: &Reference) -> bool {
+        let is_instance_of: bool = js! {
+            return @{reference} instanceOf Event;
+        }.try_into()
+            .unwrap();
+
+        is_instance_of
     }
 }
 
@@ -53,17 +58,17 @@ impl TryFrom<Value> for TransactionEvent {
 
 impl IEvent for TransactionEvent {}
 impl ConcreteEvent for TransactionEvent {
-    const EVENT_TYPE: &'static str = "viewtransaction";
+    const EVENT_TYPE: &'static str = "virtual_view_transaction";
 }
 
 impl TransactionEvent {
     #[inline]
     pub fn new(transaction: Transaction) -> Self {
-        let json = to_value(transaction).unwrap().to_string();
+        let value = to_value(transaction).unwrap().to_string();
 
-        let event = js! {
-            let e = new Event("viewtransaction");
-            e.transaction = @{json};
+        let event: Value = js! {
+            let e = new Event("virtual_view_transaction");
+            e.transaction = @{value};
             return e;
         };
 
@@ -72,10 +77,12 @@ impl TransactionEvent {
 
     #[inline]
     pub fn transaction(&self) -> Transaction {
-        let transaction = js! {
+        let transaction: String = js! {
             return @{self.as_ref()}.transaction;
-        };
-        from_str(&transaction.into_string().unwrap()).unwrap()
+        }.try_into()
+            .unwrap();
+
+        from_str(&transaction).unwrap()
     }
 }
 

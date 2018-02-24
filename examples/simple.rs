@@ -88,18 +88,18 @@ impl Component for App {
                 <input
                     type="text"
                     value={ instance.state.get("text") }
-                    oninput={ event {
+                    oninput={ block {
                         let updater = instance.updater.clone();
                         move |e: &mut Props| App::text_change(&updater, e)
                     } }
                 />
-                <{AddTodo} add_todo={ event {
+                <{AddTodo} add_todo={ block {
                     let updater = instance.updater.clone();
                     move |_: &mut Props| App::add_todo(&updater)
                 } } />
                 <{VisibleTodoList}
                     todos={ instance.state.get("todos") }
-                    remove_todo={ event {
+                    remove_todo={ block {
                         let updater = instance.updater.clone();
                         move |e: &mut Props| App::remove_todo(&updater, e)
                     } }

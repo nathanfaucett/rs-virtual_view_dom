@@ -16,7 +16,7 @@ mod node_ref;
 mod nodes_ids;
 mod patcher;
 
-pub use self::utils::ToHtmlString;
+pub use self::utils::{js_value_to_array, js_value_to_prop, js_value_to_props, ToHtmlString};
 pub use self::events::Events;
 pub use self::handler::{Handler, TransactionEvent};
 pub use self::node_ref::NodeRef;
