@@ -1,13 +1,18 @@
+extern crate messenger;
 extern crate serde_json;
 extern crate stdweb;
 #[macro_use]
 extern crate virtual_view;
 extern crate virtual_view_dom;
 
-use stdweb::web::{document, IEventTarget, INonElementParentNode};
+use std::rc::Rc;
+use std::cell::RefCell;
+
+use stdweb::PromiseFuture;
+use stdweb::web::{document, INonElementParentNode};
 use virtual_view::{Children, Component, EventManager, Instance, Prop, Props, Renderer, Updater,
                    View};
-use virtual_view_dom::{Handler, Patcher, TransactionEvent};
+use virtual_view_dom::Patcher;
 
 struct Button;
 
@@ -89,17 +94,19 @@ impl Component for Counter {
 fn main() {
     stdweb::initialize();
 
-    let event_manager = EventManager::new();
-    let handler = Handler::new(document());
+    let (server, client, future) = messenger::unbounded_channel();
 
-    let mut patcher = Patcher::new(
+    let event_manager = EventManager::new();
+
+    let patcher = Rc::new(RefCell::new(Patcher::new(
         document().get_element_by_id("app").unwrap().into(),
         document(),
         event_manager.clone(),
-    );
+    )));
 
-    document().add_event_listener::<TransactionEvent, _>(move |e| {
-        patcher.patch(&e.transaction());
+    let _ = client.on("virtual_view.transaction", move |t| {
+        patcher.borrow_mut().patch(t);
+        None
     });
 
     let _renderer = Renderer::new(
@@ -107,8 +114,10 @@ fn main() {
             <{Counter} count=0/>
         },
         event_manager,
-        handler,
+        server,
     );
+
+    PromiseFuture::spawn(future);
 
     stdweb::event_loop();
 }

@@ -1,6 +1,6 @@
 [package]
 name = "virtual_view_dom"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Nathan Faucett <nathanfaucett@gmail.com>"]
 
 keywords = ["virtual", "view", "dom", "web"]
@@ -17,10 +17,13 @@ name = "virtual_view_dom"
 path = "src/lib.rs"
 
 [dependencies]
+futures = "0.1"
 fnv = "1.0"
-stdweb = "0.4"
+messenger = { path = "../rs-messenger" }
+stdweb = { version = "0.4" }
 serde = "1.0"
 serde_json = "1.0"
-virtual_view = "0.2"
+virtual_view = { path = "../rs-virtual_view" } #"0.2"
 
 [dev-dependencies]
+stdweb = { version = "0.4", features = ["futures", "experimental_features_which_may_break_on_minor_version_bumps"] }

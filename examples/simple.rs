@@ -1,16 +1,21 @@
+extern crate messenger;
 extern crate serde_json;
 extern crate stdweb;
 #[macro_use]
 extern crate virtual_view;
 extern crate virtual_view_dom;
 
-use stdweb::web::{document, IEventTarget, INonElementParentNode, Node};
+use std::rc::Rc;
+use std::cell::RefCell;
+
+use stdweb::PromiseFuture;
+use stdweb::web::{document, INonElementParentNode, Node};
 use stdweb::web::html_element::InputElement;
 use stdweb::unstable::TryInto;
 
 use virtual_view::{Array, Children, Component, EventManager, Instance, Prop, Props, Renderer,
                    Updater, View};
-use virtual_view_dom::{Handler, Patcher, TransactionEvent};
+use virtual_view_dom::Patcher;
 
 struct App;
 
@@ -189,28 +194,30 @@ impl Component for Footer {
 }
 
 fn dom_node(id: &str) -> Option<Node> {
-    unsafe { PATCHER.as_ref().unwrap().node(id) }
+    unsafe { PATCHER.as_ref().unwrap().borrow().node(id) }
 }
-static mut PATCHER: Option<Patcher> = None;
+static mut PATCHER: Option<Rc<RefCell<Patcher>>> = None;
 
 fn main() {
     stdweb::initialize();
 
-    let event_manager = EventManager::new();
-    let handler = Handler::new(document());
+    let (server, client, future) = messenger::unbounded_channel();
 
-    let patcher = Patcher::new(
+    let event_manager = EventManager::new();
+
+    let patcher = Rc::new(RefCell::new(Patcher::new(
         document().get_element_by_id("app").unwrap().into(),
         document(),
         event_manager.clone(),
-    );
+    )));
 
     unsafe {
         PATCHER = Some(patcher);
     }
 
-    document().add_event_listener::<TransactionEvent, _>(|e| unsafe {
-        PATCHER.as_mut().unwrap().patch(&e.transaction());
+    let _ = client.on("virtual_view.transaction", move |t| unsafe {
+        PATCHER.as_ref().unwrap().borrow_mut().patch(t);
+        None
     });
 
     let _renderer = Renderer::new(
@@ -218,8 +225,10 @@ fn main() {
             <{App}/>
         },
         event_manager,
-        handler,
+        server,
     );
+
+    PromiseFuture::spawn(future);
 
     stdweb::event_loop();
 }

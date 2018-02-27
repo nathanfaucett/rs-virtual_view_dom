@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 use stdweb::Reference;
 use stdweb::web::{Document, Node};
 use stdweb::unstable::TryInto;
@@ -30,12 +28,12 @@ impl Events {
         name: &str,
         id: &str,
         node: &Node,
-        nodes: &Arc<Mutex<NodesIds>>,
+        nodes_ids: &NodesIds,
         document: &Document,
     ) {
         if !self.listening.contains_key(name) {
             self.listening.insert(name.into(), 1);
-            self.add_event_listener(name, id, node, nodes, document);
+            self.add_event_listener(name, id, node, nodes_ids, document);
         } else {
             self.listening.get_mut(name).map(|count| *count += 1);
         }
@@ -46,7 +44,7 @@ impl Events {
         name: &str,
         id: &str,
         node: &Node,
-        nodes: &Arc<Mutex<NodesIds>>,
+        nodes_ids: &NodesIds,
         document: &Document,
     ) {
         let count = if let Some(count) = self.listening.get_mut(name) {
@@ -57,22 +55,18 @@ impl Events {
         };
         if count == Some(0) {
             self.listening.remove(name);
-            self.remove_event_listener(name, id, node, nodes, document);
+            self.remove_event_listener(name, id, node, nodes_ids, document);
         }
     }
 
     #[inline]
-    fn handle(event_manager: &EventManager, nodes_ids: &Arc<Mutex<NodesIds>>, event: Reference) {
+    fn handle(event_manager: &EventManager, nodes_ids: &NodesIds, event: Reference) {
         let target: Node = js! {
             return @{event.as_ref()}.target;
         }.try_into()
             .unwrap();
 
-        if let Some(id) = nodes_ids
-            .lock()
-            .expect("failed to acquire nodes_ids lock")
-            .id(&target)
-        {
+        if let Some(id) = nodes_ids.id(&target) {
             let name: String = js! {
                 return "on" + @{event.as_ref()}.type;
             }.try_into()
@@ -81,7 +75,7 @@ impl Events {
             let mut props = Props::new();
             props.set("name", name);
             props.set("event", js_value_to_prop(event.try_into().unwrap()));
-            event_manager.dispatch(id, &mut props);
+            event_manager.dispatch(&id, &mut props);
         }
     }
 
@@ -91,7 +85,7 @@ impl Events {
         name: &str,
         id: &str,
         _node: &Node,
-        nodes_ids: &Arc<Mutex<NodesIds>>,
+        nodes_ids: &NodesIds,
         document: &Document,
     ) {
         let event_manager = self.event_manager.clone();
@@ -118,7 +112,7 @@ impl Events {
         name: &str,
         id: &str,
         _node: &Node,
-        _nodes_ids: &Arc<Mutex<NodesIds>>,
+        _nodes_ids: &NodesIds,
         document: &Document,
     ) {
         let listener_reference = self.listening_handlers
