@@ -1,4 +1,5 @@
 extern crate messenger;
+#[macro_use]
 extern crate serde_json;
 extern crate stdweb;
 #[macro_use]
@@ -8,6 +9,7 @@ extern crate virtual_view_dom;
 use std::rc::Rc;
 use std::cell::RefCell;
 
+use serde_json::{from_value, Value};
 use stdweb::PromiseFuture;
 use stdweb::web::{document, INonElementParentNode, Node};
 use stdweb::web::html_element::InputElement;
@@ -42,17 +44,26 @@ impl App {
         Prop::Null
     }
     fn text_change(updater: &Updater, e: &mut Props) -> Prop {
-        let id = e.get("component_id").string().unwrap();
+        let u = updater.clone();
 
-        if let Some(node) = dom_node(id) {
-            let input: InputElement = node.try_into().unwrap();
+        updater.send(
+            "virtual_view_dom.input.value",
+            json!({
+                "input_id": e.get("component_id").string().unwrap()
+            }),
+            move |props| {
+                if let Some(data) = props.as_object() {
+                    let value: Prop = data.get("value").unwrap().into();
 
-            updater.set_state(move |prev| {
-                let mut next = prev.clone();
-                next.set("text", input.raw_value());
-                next
-            });
-        }
+                    u.set_state(move |prev| {
+                        let mut next = prev.clone();
+                        next.set("text", value.clone());
+                        next
+                    });
+                }
+            },
+        );
+
         Prop::Null
     }
     fn remove_todo(updater: &Updater, e: &mut Props) -> Prop {
@@ -215,9 +226,32 @@ fn main() {
         PATCHER = Some(patcher);
     }
 
-    let _ = client.on("virtual_view.transaction", move |t| unsafe {
-        PATCHER.as_ref().unwrap().borrow_mut().patch(t);
+    let _ = client.on("virtual_view.transaction", move |t: &Value| {
+        let transaction = from_value(t.clone()).unwrap();
+        unsafe {
+            PATCHER.as_ref().unwrap().borrow_mut().patch(&transaction);
+        }
         None
+    });
+
+    let _ = client.on("virtual_view_dom.input.value", move |data: &Value| {
+        let value = if let Some(data) = data.as_object() {
+            let id = data.get("input_id").unwrap().as_str().unwrap();
+
+            if let Some(node) = dom_node(id) {
+                if let Ok(input) = TryInto::<InputElement>::try_into(node) {
+                    input.raw_value()
+                } else {
+                    String::new()
+                }
+            } else {
+                String::new()
+            }
+        } else {
+            String::new()
+        };
+
+        Some(json!({ "value": value }))
     });
 
     let _renderer = Renderer::new(

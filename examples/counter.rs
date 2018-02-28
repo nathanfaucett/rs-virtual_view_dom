@@ -8,6 +8,7 @@ extern crate virtual_view_dom;
 use std::rc::Rc;
 use std::cell::RefCell;
 
+use serde_json::{from_value, Value};
 use stdweb::PromiseFuture;
 use stdweb::web::{document, INonElementParentNode};
 use virtual_view::{Children, Component, EventManager, Instance, Prop, Props, Renderer, Updater,
@@ -104,8 +105,9 @@ fn main() {
         event_manager.clone(),
     )));
 
-    let _ = client.on("virtual_view.transaction", move |t| {
-        patcher.borrow_mut().patch(t);
+    let _ = client.on("virtual_view.transaction", move |t: &Value| {
+        let transaction = from_value(t.clone()).unwrap();
+        patcher.borrow_mut().patch(&transaction);
         None
     });
 
